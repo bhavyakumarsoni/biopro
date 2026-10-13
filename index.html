@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ant Colony Optimization - BTech Research Model</title>
+    <!-- Tailwind CSS for modern layout utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for sleek UI icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for real-time convergence analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MathJax for high-quality mathematical LaTeX rendering -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Leaflet CSS & JS for Real Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #0a0a0c;
+            --card-bg: #121216;
+            --border-color: #262630;
+            --gold-primary: #ffd700;
+            --gold-secondary: #ffb700;
+            --gold-glow: rgba(255, 215, 0, 0.25);
+            --text-main: #f0f0f5;
+            --text-muted: #8e8e9f;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-mono-code {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Gold glow custom animations and utilities */
+        .gold-border {
+            border: 1px solid rgba(255, 215, 0, 0.25);
+        }
+
+        .gold-border-glow {
+            border: 1px solid var(--gold-primary);
+            box-shadow: 0 0 15px var(--gold-glow);
+        }
+
+        .gold-text-glow {
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d0d11;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a35;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold-secondary);
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #1e1e26;
+            border-radius: 4px;
+            height: 6px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--gold-primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--gold-primary);
+        }
+
+        .nav-tab.active {
+            background-color: var(--gold-primary);
+            color: #000000;
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+        }
+
+        canvas {
+            touch-action: none;
+        }
+
+        .dark-map-tiles {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="border-b border-[#22222d] bg-[#0c0c10]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-extrabold text-xl shadow-lg shadow-yellow-500/20">
+                <i class="fa-solid fa-bug"></i>
+            </div>
+            <div>
+                <h1 class="text-lg lg:text-xl font-bold tracking-wide text-white flex items-center gap-2">
+                    ANT COLONY OPTIMIZATION <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-mono">BTech Bio-AI Model</span>
+                </h1>
+                <p class="text-xs text-gray-400">Swarm Intelligence Simulation &amp; Real-world Industrial Applications</p>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <nav class="flex items-center bg-[#15151c] p-1 rounded-xl border border-[#282835] gap-1 text-sm font-medium">
+            <button onclick="switchTab('science')" id="tab-science" class="nav-tab active px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                <i class="fa-solid fa-flask"></i> <span class="hidden sm:inline">1. ACO Science &amp; Core</span>
+            </button>
+            <button onclick="switchTab('antivirus')" id="tab-antivirus" class="nav-tab px-4 py-2 rounded-lg text-gray-400 hover:text-yellow-400 transition-all duration-200 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> <span class="hidden sm:inline">2. Antivirus Scan</span>
+            </button>
+            <button onclick="switchTab('mumbai')" id="tab-mumbai" class="nav-tab px-4 py-2 rounded-lg text-gray-400 hover:text-yellow-400 transition-all duration-200 flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot"></i> <span class="hidden sm:inline">3. Mumbai Logistics Router</span>
+            </button>
+        </nav>
+    </header>
+
+    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 space-y-6">
+
+        <!-- =================================================================== -->
+        <!-- SECTION 1: CORE ACO SCIENCE & TSP FORAGING SIMULATOR               -->
+        <!-- =================================================================== -->
+        <section id="sec-science" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- CONTROLS & PARAMS PANEL -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
+                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                                <i class="fa-solid fa-[#sliders] text-yellow-400"></i> Hyperparameter Controls
+                            </h2>
+                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">TSP Graph</span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Alpha Control -->
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Pheromone Importance (&alpha;)</span>
+                                    <span id="val-alpha" class="text-yellow-400 font-mono">1.0</span>
+                                </div>
+                                <input type="range" id="param-alpha" min="0" max="5" step="0.1" value="1.0" class="w-full" oninput="updateScienceParams()">
+                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values give greater weight to existing pheromone trails (Exploitation).</p>
+                            </div>
+
+                            <!-- Beta Control -->
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Heuristic/Distance Weight (&beta;)</span>
+                                    <span id="val-beta" class="text-yellow-400 font-mono">2.5</span>
+                                </div>
+                                <input type="range" id="param-beta" min="0" max="8" step="0.1" value="2.5" class="w-full" oninput="updateScienceParams()">
+                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values prefer shorter distances between nodes (Exploration heuristic).</p>
+                            </div>
+
+                            <!-- Evaporation Rate Control -->
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Evaporation Rate (&rho;)</span>
+                                    <span id="val-rho" class="text-yellow-400 font-mono">0.05</span>
+                                </div>
+                                <input type="range" id="param-rho" min="0.01" max="0.3" step="0.01" value="0.05" class="w-full" oninput="updateScienceParams()">
+                                <p class="text-[11px] text-gray-500 mt-0.5">Rate at which chemical trails fade over time to prevent sub-optimal traps.</p>
+                            </div>
+
+                            <!-- Ant Count -->
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Ant Swarm Population</span>
+                                    <span id="val-ants" class="text-yellow-400 font-mono">40</span>
+                                </div>
+                                <input type="range" id="param-ants" min="5" max="150" step="5" value="40" class="w-full" oninput="updateScienceParams()">
+                            </div>
+
+                            <!-- Node Preset / Preset buttons -->
+                            <div>
+                                <label class="text-xs font-semibold text-gray-300 block mb-1">Graph Topology Presets</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button onclick="loadNodePreset('circle')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Circle</button>
+                                    <button onclick="loadNodePreset('random')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Random 12</button>
+                                    <button onclick="loadNodePreset('clusters')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Clusters</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTROL BUTTONS -->
+                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-start-science" onclick="toggleScienceSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-play"></i> Start Swarm
+                            </button>
+                            <button onclick="resetScienceSim()" class="w-full py-2.5 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold rounded-xl border border-[#2f2f40] transition flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-rotate-right"></i> Reset
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-mouse"></i> Click canvas to manually insert target nodes
+                        </p>
+                    </div>
+                </div>
+
+                <!-- CANVAS VISUALIZER -->
+                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-sm font-bold text-gray-200">Foraging Space &amp; Pheromone Topology</h3>
+                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono" id="status-science">Idle</span>
+                        </div>
+                        <div class="flex gap-4 text-xs font-mono">
+                            <div><span class="text-gray-400">Nodes:</span> <span id="stat-nodes" class="text-yellow-400 font-bold">12</span></div>
+                            <div><span class="text-gray-400">Iterations:</span> <span id="stat-iter" class="text-yellow-400 font-bold">0</span></div>
+                            <div><span class="text-gray-400">Best Distance:</span> <span id="stat-dist" class="text-yellow-400 font-bold">--</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas container with absolute dynamic sizing -->
+                    <div class="relative w-full h-[480px] bg-[#08080a] rounded-xl overflow-hidden border border-[#1e1e28] flex items-center justify-center">
+                        <canvas id="canvas-science" class="w-full h-full cursor-crosshair"></canvas>
+                    </div>
+
+                    <!-- Pheromone Intensity Legend -->
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
+                        <div class="flex items-center gap-2">
+                            <span>Low Pheromone</span>
+                            <div class="w-24 h-2 rounded-full bg-gradient-to-r from-[#222210] via-yellow-600 to-yellow-400"></div>
+                            <span class="text-yellow-400 font-semibold">High Intensity (\(\tau\))</span>
+                        </div>
+                        <div class="text-[11px] text-gray-500">
+                            Gold glowing lines = Consolidated short path
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MATH & THEORY DETAILED BREAKDOWN SECTION -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Mathematical Formula Breakdown -->
+                <div class="lg:col-span-7 bg-[#121216] border border-[#22222e] rounded-2xl p-6 space-y-4">
+                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-square-root-variable"></i> ACO Mathematical Working Principle
+                    </h3>
+                    
+                    <div class="bg-[#0a0a0e] p-4 rounded-xl border border-[#222230] text-center overflow-x-auto">
+                        <p class="text-xs text-gray-400 mb-2">State Transition Rule (Probabilistic Choice of Ant \(k\) from node \(i\) to \(j\)):</p>
+                        <div class="text-lg text-yellow-300 font-mono py-1">
+                            $$P_{ij}^k = \frac{(\tau_{ij})^\alpha \cdot (\eta_{ij})^\beta}{\sum_{l \in \text{allowed}_k} (\tau_{il})^\alpha \cdot (\eta_{il})^\beta}$$
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-300">
+                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
+                            <span class="text-yellow-400 font-bold block mb-1">1. Pheromone Concentration (\(\tau_{ij}\))</span>
+                            Represents collective swarm memory. When an ant completes a tour, it deposits pheromone inversely proportional to path length \(\Delta \tau = Q / L_k\).
+                        </div>
+                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
+                            <span class="text-yellow-400 font-bold block mb-1">2. Heuristic Desirability (\(\eta_{ij}\))</span>
+                            Local visibility heuristic, calculated as \(\eta_{ij} = \frac{1}{d_{ij}}\) where \(d_{ij}\) is Euclidean distance or delay cost between nodes.
+                        </div>
+                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
+                            <span class="text-yellow-400 font-bold block mb-1">3. Evaporation Decay (\(\rho\))</span>
+                            Updated via \(\tau_{ij} \leftarrow (1-\rho)\tau_{ij}\). Evaporation eliminates poor decisions and prevents global stagnation in local optima.
+                        </div>
+                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
+                            <span class="text-yellow-400 font-bold block mb-1">4. Stigmergic Communication</span>
+                            Indirect coordination through environmental modification. Ants do not talk directly; they communicate via chemical density trails.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Convergence Chart -->
+                <div class="lg:col-span-5 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between">
+                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-chart-line"></i> Optimization Convergence</span>
+                        <span class="text-xs text-gray-400 font-normal">Best Path Cost vs Iterations</span>
+                    </h3>
+                    <div class="relative w-full h-[220px] bg-[#0a0a0e] rounded-xl p-2 border border-[#1d1d28]">
+                        <canvas id="chart-science-convergence"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- =================================================================== -->
+        <!-- SECTION 2: ANTIVIRUS SCAN & THREAT PATHING SIMULATOR               -->
+        <!-- =================================================================== -->
+        <section id="sec-antivirus" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Sidebar: Settings & Threat Injection Controls -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
+                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                                <i class="fa-solid fa-shield-virus"></i> Threat Detector Config
+                            </h2>
+                            <span class="text-xs bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 font-mono">AV Engine</span>
+                        </div>
+
+                        <p class="text-xs text-gray-400 mb-4">
+                            Antivirus ACO models heuristic file-system scanning. Virtual detection agents follow memory signature heuristics and leave trails where threat clusters are discovered.
+                        </p>
+
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Detection Agent Count</span>
+                                    <span id="val-av-ants" class="text-yellow-400 font-mono">25</span>
+                                </div>
+                                <input type="range" id="param-av-ants" min="5" max="60" step="5" value="25" class="w-full" oninput="document.getElementById('val-av-ants').innerText=this.value">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span class="text-gray-300">Scan Frequency Speed</span>
+                                    <span id="val-av-speed" class="text-yellow-400 font-mono">Medium</span>
+                                </div>
+                                <input type="range" id="param-av-speed" min="1" max="3" step="1" value="2" class="w-full" oninput="updateAVSpeedLabel(this.value)">
+                            </div>
+
+                            <div class="p-3 bg-[#171720] rounded-xl border border-[#252535] space-y-3">
+                                <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Simulate Malware Attack</h4>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <button onclick="injectRandomThreat()" class="w-full px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-700/50 text-red-300 text-xs rounded-lg font-medium transition flex items-center gap-2 justify-center">
+                                        <i class="fa-solid fa-virus-slash"></i> Inject Random Threat Scenario
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AV Control Action Buttons -->
+                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
+                        <button id="btn-start-av" onclick="toggleAVScan()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-radar"></i> Initiate Heuristic Scan
+                        </button>
+                        <button onclick="resetAVScan()" class="w-full py-2 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold text-xs rounded-xl border border-[#2f2f40] transition">
+                            Clear Scan Log &amp; Re-initialize Nodes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AV File System Node Graph Visualizer -->
+                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-sm font-bold text-gray-200">System Directory Node &amp; Threat Signature Topology</h3>
+                            <span id="status-av" class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono">System Clean</span>
+                        </div>
+                        <div class="flex gap-4 text-xs font-mono">
+                            <div><span class="text-gray-400">Scanned:</span> <span id="stat-av-scanned" class="text-yellow-400 font-bold">0 %</span></div>
+                            <div><span class="text-gray-400">Threats Found:</span> <span id="stat-av-threats" class="text-red-400 font-bold">0</span></div>
+                            <div><span class="text-gray-400">CPU Overhead Savings:</span> <span id="stat-av-cpu" class="text-emerald-400 font-bold">38%</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas for Antivirus Node Graph -->
+                    <div class="relative w-full h-[460px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
+                        <canvas id="canvas-antivirus" class="w-full h-full"></canvas>
+                    </div>
+
+                    <!-- Live Security Agent Terminal Log -->
+                    <div class="mt-3 bg-[#0a0a0d] border border-[#1e1e28] rounded-xl p-3 h-28 overflow-y-auto font-mono text-[11px] space-y-1" id="av-log-container">
+                        <p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- =================================================================== -->
+        <!-- SECTION 3: MUMBAI LOGISTICS & DYNAMIC NETWORK ROUTER              -->
+        <!-- =================================================================== -->
+        <section id="sec-mumbai" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Mumbai Logistics Settings Panel -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
+                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                                <i class="fa-solid fa-route"></i> Mumbai Transit Hubs
+                            </h2>
+                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">Real-world Map</span>
+                        </div>
+
+                        <div class="space-y-4 text-xs">
+                            <!-- Origin & Destination Selector -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-gray-300 font-semibold mb-1">Source Hub</label>
+                                    <select id="mumbai-origin" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
+                                        <!-- Dynamically Populated -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-300 font-semibold mb-1">Destination</label>
+                                    <select id="mumbai-destination" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
+                                        <!-- Dynamically Populated -->
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Traffic Injector Instructions -->
+                            <div class="bg-[#171722] p-3 rounded-xl border border-[#28283a] space-y-2">
+                                <span class="font-bold text-yellow-400 flex items-center gap-2 text-xs">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Dynamic Traffic Congestion Simulator
+                                </span>
+                                <p class="text-gray-400 text-[11px]">
+                                    Click on any highway corridor (edge line) on the map to add high traffic congestion (WEH, Sea Link, EEH). ACO ants will dynamically reroute!
+                                </p>
+                                <button onclick="clearMumbaiTraffic()" class="w-full py-1.5 bg-[#222230] hover:bg-[#2c2c3e] text-gray-300 rounded border border-[#35354a] text-xs font-semibold">
+                                    Clear Traffic Congestion
+                                </button>
+                            </div>
+
+                            <!-- Route Stats comparison table -->
+                            <div class="bg-[#0a0a0d] p-3 rounded-xl border border-[#1e1e28] space-y-2">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-gray-400">ACO Swarm Best Path:</span>
+                                    <span id="mumbai-aco-time" class="text-yellow-400 font-bold font-mono">-- min</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-gray-400">Static Shortest (Dijkstra):</span>
+                                    <span id="mumbai-static-time" class="text-gray-300 font-bold font-mono">-- min</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs pt-2 border-t border-[#1e1e28]">
+                                    <span class="text-emerald-400 font-semibold">Traffic Adaptation Score:</span>
+                                    <span id="mumbai-efficiency" class="text-emerald-400 font-bold font-mono">+94%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
+                        <button id="btn-start-mumbai" onclick="toggleMumbaiSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-truck-fast"></i> Run ACO Logistics Router
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mumbai Map Network Visualizer -->
+                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-sm font-bold text-gray-200">Greater Mumbai Geographic Transit Network Graph</h3>
+                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono">10 Transit Nodes</span>
+                        </div>
+                        <div class="flex gap-3 text-xs">
+                        <span class="flex items-center gap-1 text-emerald-400"><i class="fa-solid fa-circle text-[8px]"></i> Normal</span>
+                        <span class="flex items-center gap-1 text-red-500"><i class="fa-solid fa-circle text-[8px]"></i> Congested Edge</span>
+                    </div>
+                </div>
+
+                <!-- Leaflet Map Container -->
+                <div class="relative w-full h-[480px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
+                    <div id="map-mumbai" class="w-full h-full z-10"></div>
+                </div>
+
+                <!-- Legend & Route Description -->
+                <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
+                    <div id="mumbai-route-text" class="text-yellow-400 font-mono text-[11px] truncate max-w-lg">
+                            Route: Select Origin and Destination above to calculate path...
+                        </div>
+                        <div class="text-[11px] text-gray-500">
+                            Yellow particles = Delivery Logistics Vehicles
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-[#1c1c28] bg-[#08080b] py-3 px-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div>
+            <span class="text-gray-400 font-medium">BTech Project:</span> Bio-Inspired Intelligent Algorithms &mdash; Ant Colony Optimization
+        </div>
+        <div class="text-gray-600 font-mono text-[11px]">
+            Model Equations: \( P_{ij} \propto \tau_{ij}^\alpha \eta_{ij}^\beta \)
+        </div>
+    </footer>
+
+
+    <!-- =================================================================== -->
+    <!-- JAVASCRIPT SIMULATION LOGIC                                         -->
+    <!-- =================================================================== -->
+    <script>
+        // Global Tab Management
+        let currentTab = 'science';
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            document.getElementById('sec-science').classList.add('hidden');
+            document.getElementById('sec-antivirus').classList.add('hidden');
+            document.getElementById('sec-mumbai').classList.add('hidden');
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+
+            // Trigger canvas resizing and initial draws
+            if (tabName === 'science') initScienceCanvas();
+            if (tabName === 'antivirus') initAVCanvas();
+            if (tabName === 'mumbai') initMumbaiMap();
+        }
+
+        // ===================================================================
+        // MODULE 1: SCIENCE & TSP CORE ACO LOGIC
+        // ===================================================================
+        let scienceCanvas, scienceCtx;
+        let scienceRunning = false;
+        let scienceNodes = [];
+        let pheromones = [];
+        let scienceAnts = [];
+        let scienceParams = { alpha: 1.0, beta: 2.5, rho: 0.05, count: 40 };
+        let scienceIteration = 0;
+        let bestDistance = Infinity;
+        let bestTour = [];
+        let scienceChart = null;
+        let scienceHistory = [];
+
+        function initScienceCanvas() {
+            scienceCanvas = document.getElementById('canvas-science');
+            scienceCtx = scienceCanvas.getContext('2d');
+            resizeCanvas(scienceCanvas);
+
+            if (scienceNodes.length === 0) {
+                loadNodePreset('random');
+            } else {
+                drawScienceFrame();
+            }
+
+            scienceCanvas.onclick = (e) => {
+                const rect = scienceCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                scienceNodes.push({ x, y });
+                resetSciencePheromones();
+                drawScienceFrame();
+            };
+
+            initScienceChart();
+        }
+
+        function resizeCanvas(canvas) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        function loadNodePreset(type) {
+            const w = scienceCanvas ? scienceCanvas.width : 700;
+            const h = scienceCanvas ? scienceCanvas.height : 450;
+            const padding = 60;
+            scienceNodes = [];
+
+            if (type === 'circle') {
+                const cx = w / 2, cy = h / 2;
+                const radius = Math.min(w, h) / 2.6;
+                const count = 12;
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
+                    scienceNodes.push({ x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
+                }
+            } else if (type === 'clusters') {
+                const centers = [{ x: w * 0.25, y: h * 0.3 }, { x: w * 0.75, y: h * 0.3 }, { x: w * 0.5, y: h * 0.75 }];
+                centers.forEach(c => {
+                    for (let i = 0; i < 4; i++) {
+                        scienceNodes.push({
+                            x: c.x + (Math.random() - 0.5) * 120,
+                            y: c.y + (Math.random() - 0.5) * 120
+                        });
+                    }
+                });
+            } else { // Random 12
+                for (let i = 0; i < 12; i++) {
+                    scienceNodes.push({
+                        x: padding + Math.random() * (w - padding * 2),
+                        y: padding + Math.random() * (h - padding * 2)
+                    });
+                }
+            }
+
+            resetScienceSim();
+        }
+
+        function resetSciencePheromones() {
+            const n = scienceNodes.length;
+            pheromones = Array(n).fill(0).map(() => Array(n).fill(0.1));
+            bestDistance = Infinity;
+            bestTour = [];
+            scienceIteration = 0;
+            scienceHistory = [];
+            if (scienceChart) {
+                scienceChart.data.labels = [];
+                scienceChart.data.datasets[0].data = [];
+                scienceChart.update();
+            }
+        }
+
+        function updateScienceParams() {
+            scienceParams.alpha = parseFloat(document.getElementById('param-alpha').value);
+            scienceParams.beta = parseFloat(document.getElementById('param-beta').value);
+            scienceParams.rho = parseFloat(document.getElementById('param-rho').value);
+            scienceParams.count = parseInt(document.getElementById('param-ants').value);
+
+            document.getElementById('val-alpha').innerText = scienceParams.alpha.toFixed(1);
+            document.getElementById('val-beta').innerText = scienceParams.beta.toFixed(1);
+            document.getElementById('val-rho').innerText = scienceParams.rho.toFixed(2);
+            document.getElementById('val-ants').innerText = scienceParams.count;
+        }
+
+        function toggleScienceSim() {
+            scienceRunning = !scienceRunning;
+            const btn = document.getElementById('btn-start-science');
+            const status = document.getElementById('status-science');
+
+            if (scienceRunning) {
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Swarm`;
+                btn.classList.replace('bg-yellow-400', 'bg-amber-500');
+                status.innerText = "Running Optimization...";
+                status.className = "text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full border border-yellow-500/30 font-mono";
+                runScienceStep();
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> Resume Swarm`;
+                btn.classList.replace('bg-amber-500', 'bg-yellow-400');
+                status.innerText = "Paused";
+                status.className = "text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30 font-mono";
+            }
+        }
+
+        function resetScienceSim() {
+            scienceRunning = false;
+            const btn = document.getElementById('btn-start-science');
+            btn.innerHTML = `<i class="fa-solid fa-play"></i> Start Swarm`;
+            btn.classList.replace('bg-amber-500', 'bg-yellow-400');
+            document.getElementById('status-science').innerText = "Idle";
+            resetSciencePheromones();
+            drawScienceFrame();
+            document.getElementById('stat-nodes').innerText = scienceNodes.length;
+            document.getElementById('stat-iter').innerText = "0";
+            document.getElementById('stat-dist').innerText = "--";
+        }
+
+        function runScienceStep() {
+            if (!scienceRunning) return;
+
+            const n = scienceNodes.length;
+            if (n < 2) return;
+
+            // Generate ants and construct paths probabilistically
+            let iterBestDist = Infinity;
+            let iterBestTour = [];
+
+            for (let ant = 0; ant < scienceParams.count; ant++) {
+                let unvisited = Array.from({ length: n }, (_, i) => i);
+                let startNode = Math.floor(Math.random() * n);
+                let tour = [startNode];
+                unvisited.splice(startNode, 1);
+
+                while (unvisited.length > 0) {
+                    let curr = tour[tour.length - 1];
+                    let probs = [];
+                    let sumProbs = 0;
+
+                    for (let next of unvisited) {
+                        let dist = euclideanDist(scienceNodes[curr], scienceNodes[next]);
+                        let tau = Math.pow(pheromones[curr][next], scienceParams.alpha);
+                        let eta = Math.pow(1.0 / (dist + 0.001), scienceParams.beta);
+                        let prob = tau * eta;
+                        probs.push({ node: next, prob: prob });
+                        sumProbs += prob;
+                    }
+
+                    // Roulette Wheel Selection
+                    let rand = Math.random() * sumProbs;
+                    let accum = 0;
+                    let chosen = unvisited[0];
+
+                    for (let p of probs) {
+                        accum += p.prob;
+                        if (rand <= accum) {
+                            chosen = p.node;
+                            break;
+                        }
+                    }
+
+                    tour.push(chosen);
+                    unvisited.splice(unvisited.indexOf(chosen), 1);
+                }
+
+                // Calculate Tour Length
+                let dist = calculateTourLength(tour, scienceNodes);
+                if (dist < iterBestDist) {
+                    iterBestDist = dist;
+                    iterBestTour = tour;
+                }
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestTour = tour;
+                }
+            }
+
+            // Pheromone Evaporation
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    pheromones[i][j] *= (1 - scienceParams.rho);
+                    if (pheromones[i][j] < 0.01) pheromones[i][j] = 0.01;
+                }
+            }
+
+            // Pheromone Deposit by Iteration Best Tour
+            let depositAmount = 100 / iterBestDist;
+            for (let k = 0; k < iterBestTour.length; k++) {
+                let u = iterBestTour[k];
+                let v = iterBestTour[(k + 1) % iterBestTour.length];
+                pheromones[u][v] += depositAmount;
+                pheromones[v][u] += depositAmount;
+            }
+
+            scienceIteration++;
+            document.getElementById('stat-iter').innerText = scienceIteration;
+            document.getElementById('stat-dist').innerText = Math.round(bestDistance) + " px";
+
+            // Update Convergence Chart
+            if (scienceIteration % 2 === 0 && scienceChart) {
+                scienceChart.data.labels.push(scienceIteration);
+                scienceChart.data.datasets[0].data.push(Math.round(bestDistance));
+                if (scienceChart.data.labels.length > 30) {
+                    scienceChart.data.labels.shift();
+                    scienceChart.data.datasets[0].data.shift();
+                }
+                scienceChart.update();
+            }
+
+            drawScienceFrame();
+            setTimeout(runScienceStep, 40);
+        }
+
+        function euclideanDist(p1, p2) {
+            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        }
+
+        function calculateTourLength(tour, nodes) {
+            let len = 0;
+            for (let i = 0; i < tour.length; i++) {
+                let u = tour[i];
+                let v = tour[(i + 1) % tour.length];
+                len += euclideanDist(nodes[u], nodes[v]);
+            }
+            return len;
+        }
+
+        function drawScienceFrame() {
+            if (!scienceCtx) return;
+            const w = scienceCanvas.width;
+            const h = scienceCanvas.height;
+
+            scienceCtx.fillStyle = '#08080a';
+            scienceCtx.fillRect(0, 0, w, h);
+
+            const n = scienceNodes.length;
+
+            // Draw Pheromone Edges
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    let p = pheromones[i][j] || 0.1;
+                    if (p > 0.05) {
+                        scienceCtx.beginPath();
+                        scienceCtx.moveTo(scienceNodes[i].x, scienceNodes[i].y);
+                        scienceCtx.lineTo(scienceNodes[j].x, scienceNodes[j].y);
+                        let alpha = Math.min(1.0, p / 3.0);
+                        let width = Math.min(6, Math.max(0.5, p / 1.5));
+
+                        scienceCtx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+                        scienceCtx.lineWidth = width;
+                        if (p > 1.5) {
+                            scienceCtx.shadowColor = '#ffd700';
+                            scienceCtx.shadowBlur = 8;
+                        } else {
+                            scienceCtx.shadowBlur = 0;
+                        }
+                        scienceCtx.stroke();
+                        scienceCtx.shadowBlur = 0;
+                    }
+                }
+            }
+
+            // Draw Best Tour Overlay
+            if (bestTour.length > 0) {
+                scienceCtx.beginPath();
+                for (let i = 0; i < bestTour.length; i++) {
+                    let u = bestTour[i];
+                    let v = bestTour[(i + 1) % bestTour.length];
+                    if (i === 0) scienceCtx.moveTo(scienceNodes[u].x, scienceNodes[u].y);
+                    scienceCtx.lineTo(scienceNodes[v].x, scienceNodes[v].y);
+                }
+                scienceCtx.strokeStyle = '#00ffcc';
+                scienceCtx.lineWidth = 2.5;
+                scienceCtx.setLineDash([6, 6]);
+                scienceCtx.stroke();
+                scienceCtx.setLineDash([]);
+            }
+
+            // Draw Nodes
+            scienceNodes.forEach((node, idx) => {
+                scienceCtx.beginPath();
+                scienceCtx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+                scienceCtx.fillStyle = '#ffd700';
+                scienceCtx.shadowColor = '#ffd700';
+                scienceCtx.shadowBlur = 10;
+                scienceCtx.fill();
+                scienceCtx.shadowBlur = 0;
+
+                scienceCtx.strokeStyle = '#000';
+                scienceCtx.lineWidth = 2;
+                scienceCtx.stroke();
+
+                scienceCtx.fillStyle = '#ffffff';
+                scienceCtx.font = '10px Fira Code';
+                scienceCtx.fillText(idx + 1, node.x - 3, node.y + 3);
+            });
+        }
+
+        function initScienceChart() {
+            if (scienceChart) return; // Prevent Chart.js re-initialization error on resize/tab switch
+            
+            const ctx = document.getElementById('chart-science-convergence').getContext('2d');
+            scienceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Shortest Distance (px)',
+                        data: [],
+                        borderColor: '#ffd700',
+                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#1f1f2e' }, ticks: { color: '#888' } },
+                        y: { grid: { color: '#1f1f2e' }, ticks: { color: '#888' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+
+        // ===================================================================
+        // MODULE 2: ANTIVIRUS OPTIMIZATION SIMULATION LOGIC
+        // ===================================================================
+        let avCanvas, avCtx;
+        let avRunning = false;
+        let avNodes = [];
+        let avEdges = [];
+        let avAnts = [];
+        let avThreatCount = 0;
+        let avScannedCount = 0;
+
+        function initAVCanvas() {
+            avCanvas = document.getElementById('canvas-antivirus');
+            avCtx = avCanvas.getContext('2d');
+            resizeCanvas(avCanvas);
+            buildSystemTreeGraph();
+            drawAVFrame();
+        }
+
+        function buildSystemTreeGraph() {
+            const w = avCanvas.width || 700;
+            const h = avCanvas.height || 450;
+
+            avNodes = [
+                { id: 0, label: 'Root / Kernel', x: w * 0.1, y: h * 0.5, type: 'system', threat: 0, scanned: false, alerted: false },
+                { id: 1, label: '/System32', x: w * 0.3, y: h * 0.25, type: 'system', threat: 0, scanned: false, alerted: false },
+                { id: 2, label: '/Drivers', x: w * 0.3, y: h * 0.75, type: 'system', threat: 0, scanned: false, alerted: false },
+                { id: 3, label: 'boot.dll', x: w * 0.55, y: h * 0.15, type: 'file', threat: 0, scanned: false, alerted: false },
+                { id: 4, label: 'win32k.sys', x: w * 0.55, y: h * 0.35, type: 'file', threat: 0, scanned: false, alerted: false },
+                { id: 5, label: 'network.sys', x: w * 0.55, y: h * 0.65, type: 'file', threat: 0, scanned: false, alerted: false },
+                { id: 6, label: 'RAM Buffer', x: w * 0.55, y: h * 0.85, type: 'memory', threat: 0, scanned: false, alerted: false },
+                { id: 7, label: 'User Executables', x: w * 0.8, y: h * 0.25, type: 'app', threat: 0, scanned: false, alerted: false },
+                { id: 8, label: 'Temp Downloads', x: w * 0.8, y: h * 0.75, type: 'app', threat: 0, scanned: false, alerted: false }
+            ];
+
+            avEdges = [
+                { from: 0, to: 1, pheromone: 1.0 }, { from: 0, to: 2, pheromone: 1.0 },
+                { from: 1, to: 3, pheromone: 1.0 }, { from: 1, to: 4, pheromone: 1.0 },
+                { from: 2, to: 5, pheromone: 1.0 }, { from: 2, to: 6, pheromone: 1.0 },
+                { from: 4, to: 7, pheromone: 1.0 }, { from: 6, to: 8, pheromone: 1.0 }
+            ];
+
+            avAnts = [];
+            let antCount = parseInt(document.getElementById('param-av-ants').value);
+            for (let i = 0; i < antCount; i++) {
+                avAnts.push({
+                    currNode: 0,
+                    targetNode: 0, // Starts stationary to trigger immediate selection
+                    prevNode: -1,  // Memory to prevent immediate U-turns
+                    progress: 1.0, 
+                    speed: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        function updateAVSpeedLabel(val) {
+            const labels = { '1': 'Slow', '2': 'Medium', '3': 'Aggressive Turbo' };
+            document.getElementById('val-av-speed').innerText = labels[val];
+        }
+
+        function injectRandomThreat() {
+            // Reset existing threats
+            avNodes.forEach(n => { n.threat = 0; n.alerted = false; });
+            avEdges.forEach(e => e.pheromone = 1.0); // Clear old trails so they search again
+            
+            // Pick two distinct random leaf nodes (IDs 3 to 8)
+            let leaves = [3, 4, 5, 6, 7, 8];
+            leaves.sort(() => Math.random() - 0.5); // Shuffle array
+            
+            let trueThreat = leaves[0];
+            let fishyThreat = leaves[1];
+            
+            avNodes[trueThreat].threat = 0.95; // The real virus
+            avNodes[fishyThreat].threat = 0.40; // The "fishy" file
+            
+            logAVEvent(`[SYSTEM]: Random anomalies injected! Awaiting swarm deployment...`);
+            document.getElementById('status-av').innerText = "THREAT INJECTED";
+            document.getElementById('status-av').className = "text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full border border-red-500/30 font-mono";
+            drawAVFrame();
+        }
+
+        function toggleAVScan() {
+            avRunning = !avRunning;
+            const btn = document.getElementById('btn-start-av');
+            if (avRunning) {
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Scanner`;
+                logAVEvent('[ENGINE]: Antivirus swarm agents deployed for threat detection.');
+                runAVStep();
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-radar"></i> Resume Heuristic Scan`;
+            }
+        }
+
+        function resetAVScan() {
+            avRunning = false;
+            document.getElementById('btn-start-av').innerHTML = `<i class="fa-solid fa-radar"></i> Initiate Heuristic Scan`;
+            document.getElementById('status-av').innerText = "System Clean";
+            document.getElementById('status-av').className = "text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono";
+            document.getElementById('av-log-container').innerHTML = `<p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>`;
+            avScannedCount = 0;
+            avThreatCount = 0;
+            buildSystemTreeGraph();
+            drawAVFrame();
+        }
+
+        function logAVEvent(msg) {
+            const container = document.getElementById('av-log-container');
+            const p = document.createElement('p');
+            p.className = msg.includes('ALERT') ? 'text-red-400 font-bold' : (msg.includes('FOUND') ? 'text-yellow-300' : 'text-gray-300');
+            p.innerText = msg;
+            container.appendChild(p);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Helper function: Instantly propogates a chemical trail back to the root
+        // so wandering ants can pick up the scent of a discovered threat.
+        function backpropagatePheromone(nodeId, amount) {
+            const parents = { 1:0, 2:0, 3:1, 4:1, 5:2, 6:2, 7:4, 8:6 };
+            let curr = nodeId;
+            while (curr !== 0 && parents[curr] !== undefined) {
+                let p = parents[curr];
+                let edge = avEdges.find(e => (e.from === p && e.to === curr) || (e.from === curr && e.to === p));
+                if (edge) {
+                    edge.pheromone += amount;
+                }
+                curr = p;
+            }
+        }
+
+        function runAVStep() {
+            if (!avRunning) return;
+
+            let speedMultiplier = parseFloat(document.getElementById('param-av-speed').value);
+
+            avAnts.forEach(ant => {
+                ant.progress += ant.speed * speedMultiplier;
+
+                if (ant.progress >= 1.0) {
+                    // Ant has arrived at a node
+                    ant.prevNode = ant.currNode;
+                    ant.currNode = ant.targetNode;
+                    ant.progress = 0;
+
+                    let node = avNodes[ant.currNode];
+                    if (!node.scanned) {
+                        node.scanned = true;
+                        avScannedCount++;
+                    }
+
+                    // Threat detection and Stigmergic Signaling
+                    if (node.threat > 0.8) {
+                        backpropagatePheromone(ant.currNode, 10.0); // Massive signal
+                        if (!node.alerted) {
+                            logAVEvent(`[AV AGENT]: Found primary malware at '${node.label}'! Signaling swarm!`);
+                            node.alerted = true;
+                            avThreatCount++;
+                        }
+                    } else if (node.threat > 0.2) {
+                        backpropagatePheromone(ant.currNode, 2.0); // Weak signal
+                        if (!node.alerted) {
+                            logAVEvent(`[AV AGENT]: Suspicious heuristics at '${node.label}'. Investigating...`);
+                            node.alerted = true;
+                        }
+                    }
+
+                    // Pick next edge based on Pheromone Density (ACO Routing)
+                    let neighbors = avEdges.filter(e => e.from === ant.currNode || e.to === ant.currNode);
+                    
+                    // Prevent immediate U-turns to force deep file exploration
+                    let forwardNeighbors = neighbors.filter(e => {
+                        let nextNode = (e.from === ant.currNode) ? e.to : e.from;
+                        return nextNode !== ant.prevNode;
+                    });
+                    
+                    // If at a dead end (leaf node), they are forced to go back
+                    let validMoves = forwardNeighbors.length > 0 ? forwardNeighbors : neighbors;
+                    
+                    if (validMoves.length > 0) {
+                        let totalPhero = 0;
+                        validMoves.forEach(e => totalPhero += e.pheromone);
+
+                        let rand = Math.random() * totalPhero;
+                        let accum = 0;
+                        let chosenEdge = validMoves[0];
+
+                        // Probabilistic Roulette wheel selection based on scent strength
+                        for (let e of validMoves) {
+                            accum += e.pheromone;
+                            if (rand <= accum) {
+                                chosenEdge = e;
+                                break;
+                            }
+                        }
+
+                        ant.targetNode = (chosenEdge.from === ant.currNode) ? chosenEdge.to : chosenEdge.from;
+                    } else {
+                        ant.targetNode = 0; // Fallback failsafe
+                    }
+                }
+            });
+
+            // Evaporation logic
+            avEdges.forEach(e => {
+                e.pheromone *= 0.96; // Slow decay keeps highways visible
+                if (e.pheromone < 1.0) e.pheromone = 1.0; // Base exploration level
+            });
+
+            // Update DOM Stats
+            let totalNodes = avNodes.length;
+            let percent = Math.min(100, Math.round((avScannedCount / totalNodes) * 100));
+            document.getElementById('stat-av-scanned').innerText = percent + "%";
+            document.getElementById('stat-av-threats').innerText = avThreatCount;
+
+            drawAVFrame();
+            setTimeout(runAVStep, 30);
+        }
+
+        function drawAVFrame() {
+            if (!avCtx) return;
+            const w = avCanvas.width;
+            const h = avCanvas.height;
+
+            avCtx.fillStyle = '#07070a';
+            avCtx.fillRect(0, 0, w, h);
+
+            // Draw Edges
+            avEdges.forEach(edge => {
+                let n1 = avNodes[edge.from];
+                let n2 = avNodes[edge.to];
+                avCtx.beginPath();
+                avCtx.moveTo(n1.x, n1.y);
+                avCtx.lineTo(n2.x, n2.y);
+                
+                // Visual mapping for Pheromone trails
+                let pheroBonus = edge.pheromone - 1.0;
+                if (pheroBonus > 0.1) {
+                    avCtx.strokeStyle = `rgba(255, 215, 0, ${Math.min(1.0, 0.2 + pheroBonus / 15)})`;
+                    avCtx.lineWidth = Math.min(12, 2 + pheroBonus / 2);
+                } else {
+                    avCtx.strokeStyle = 'rgba(255, 215, 0, 0.15)'; // Faint default for unscented paths
+                    avCtx.lineWidth = 2;
+                }
+                
+                avCtx.stroke();
+            });
+
+            // Draw Nodes
+            avNodes.forEach(node => {
+                avCtx.beginPath();
+                avCtx.arc(node.x, node.y, 14, 0, Math.PI * 2);
+
+                if (node.threat > 0.5) {
+                    avCtx.fillStyle = '#ef4444';
+                    avCtx.shadowColor = '#ef4444';
+                    avCtx.shadowBlur = 15;
+                } else if (node.scanned) {
+                    avCtx.fillStyle = '#10b981';
+                    avCtx.shadowBlur = 0;
+                } else {
+                    avCtx.fillStyle = '#1e1e2d';
+                    avCtx.shadowBlur = 0;
+                }
+
+                avCtx.fill();
+                avCtx.strokeStyle = '#ffd700';
+                avCtx.lineWidth = 1.5;
+                avCtx.stroke();
+                avCtx.shadowBlur = 0;
+
+                // Label
+                avCtx.fillStyle = '#d1d1e0';
+                avCtx.font = '11px Inter';
+                avCtx.fillText(node.label, node.x - 25, node.y + 28);
+            });
+
+            // Draw Ant Agents
+            avAnts.forEach(ant => {
+                let n1 = avNodes[ant.currNode];
+                let n2 = avNodes[ant.targetNode];
+                let ax = n1.x + (n2.x - n1.x) * ant.progress;
+                let ay = n1.y + (n2.y - n1.y) * ant.progress;
+
+                avCtx.beginPath();
+                avCtx.arc(ax, ay, 4, 0, Math.PI * 2);
+                avCtx.fillStyle = '#ffd700';
+                avCtx.shadowColor = '#ffd700';
+                avCtx.shadowBlur = 6;
+                avCtx.fill();
+                avCtx.shadowBlur = 0;
+            });
+        }
+
+
+        // ===================================================================
+        // MODULE 3: MUMBAI LOGISTICS NETWORK ROUTER
+        // ===================================================================
+        let mumbaiMap;
+        let mumbaiRunning = false;
+        let mumbaiNodes = [];
+        let mumbaiEdges = [];
+        let mumbaiOriginId = 0;
+        let mumbaiDestId = 5; // Default CST to Airport
+        let mumbaiBestPath = [];
+        
+        // Leaflet layer groups
+        let nodeLayer, edgeLayer, pathLayer, vehicleLayer;
+        let vehicleMarker;
+        let animationFrameId;
+
+        function initMumbaiMap() {
+            if (!mumbaiMap) {
+                mumbaiMap = L.map('map-mumbai').setView([19.0760, 72.8777], 11);
+                
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                    maxZoom: 16
+                }).addTo(mumbaiMap);
+
+                nodeLayer = L.layerGroup().addTo(mumbaiMap);
+                edgeLayer = L.layerGroup().addTo(mumbaiMap);
+                pathLayer = L.layerGroup().addTo(mumbaiMap);
+                vehicleLayer = L.layerGroup().addTo(mumbaiMap);
+
+                setupMumbaiTopology();
+                populateMumbaiDropdowns();
+            }
+
+            recalculateMumbaiRoute();
+            
+            // Re-render when container size changes
+            setTimeout(() => {
+                mumbaiMap.invalidateSize();
+            }, 200);
+        }
+
+        function setupMumbaiTopology() {
+            // Real Lat/Lng coordinates for Mumbai Map
+            mumbaiNodes = [
+                { id: 0, name: 'CST / Fort', lat: 18.9400, lng: 72.8350 },
+                { id: 1, name: 'Dadar', lat: 19.0180, lng: 72.8430 },
+                { id: 2, name: 'Bandra', lat: 19.0550, lng: 72.8300 },
+                { id: 3, name: 'BKC Hub', lat: 19.0660, lng: 72.8650 },
+                { id: 4, name: 'Andheri', lat: 19.1190, lng: 72.8460 },
+                { id: 5, name: 'Mumbai Airport (BOM)', lat: 19.0900, lng: 72.8630 },
+                { id: 6, name: 'Borivali', lat: 19.2300, lng: 72.8560 },
+                { id: 7, name: 'Thane', lat: 19.2000, lng: 72.9780 },
+                { id: 8, name: 'Navi Mumbai (Vashi)', lat: 19.0730, lng: 72.9980 }
+            ];
+
+            mumbaiEdges = [
+                { from: 0, to: 1, name: 'Eastern Highway South', baseWeight: 18, weight: 18, congested: false },
+                { from: 1, to: 2, name: 'Dadar West Arterial', baseWeight: 12, weight: 12, congested: false },
+                { from: 1, to: 3, name: 'BKC Connector', baseWeight: 10, weight: 10, congested: false },
+                { from: 2, to: 3, name: 'Bandra-BKC Link', baseWeight: 8, weight: 8, congested: false },
+                { from: 2, to: 4, name: 'Western Express Hwy (WEH)', baseWeight: 22, weight: 22, congested: false },
+                { from: 3, to: 5, name: 'SNT Cruz-Chembur Link', baseWeight: 15, weight: 15, congested: false },
+                { from: 4, to: 5, name: 'Airport Approach Road', baseWeight: 10, weight: 10, congested: false },
+                { from: 4, to: 6, name: 'WEH North Corridor', baseWeight: 25, weight: 25, congested: false },
+                { from: 5, to: 7, name: 'Ghodbunder Connectivity', baseWeight: 35, weight: 35, congested: false },
+                { from: 3, to: 8, name: 'Vashi Bridge Connector', baseWeight: 28, weight: 28, congested: false },
+                { from: 7, to: 8, name: 'Thane-Belapur Road', baseWeight: 20, weight: 20, congested: false }
+            ];
+            
+            drawMapNetwork();
+        }
+
+        function drawMapNetwork() {
+            edgeLayer.clearLayers();
+            nodeLayer.clearLayers();
+
+            // Draw Edges
+            mumbaiEdges.forEach(edge => {
+                let n1 = mumbaiNodes[edge.from];
+                let n2 = mumbaiNodes[edge.to];
+                
+                let color = edge.congested ? '#ef4444' : '#3f3f5a';
+                let weight = edge.congested ? 6 : 4;
+
+                let polyline = L.polyline([[n1.lat, n1.lng], [n2.lat, n2.lng]], {
+                    color: color,
+                    weight: weight,
+                    opacity: 0.8
+                }).addTo(edgeLayer);
+
+                // Click event to toggle congestion
+                polyline.on('click', () => {
+                    edge.congested = !edge.congested;
+                    edge.weight = edge.congested ? edge.baseWeight * 3.5 : edge.baseWeight;
+                    drawMapNetwork();
+                    recalculateMumbaiRoute();
+                });
+            });
+
+            // Draw Nodes
+            mumbaiNodes.forEach(node => {
+                let isOrigin = node.id === mumbaiOriginId;
+                let isDest = node.id === mumbaiDestId;
+                
+                let color = isOrigin ? '#10b981' : (isDest ? '#f59e0b' : '#1e1e2d');
+                
+                let circle = L.circleMarker([node.lat, node.lng], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#ffd700',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 1
+                }).addTo(nodeLayer);
+
+                circle.bindTooltip(node.name, { permanent: false, direction: 'top' });
+                
+                // User interactive origin/destination setting
+                let popupContent = `
+                    <div class="text-xs font-sans text-gray-800 p-1 w-32">
+                        <strong class="block mb-2 text-center border-b pb-1 border-gray-200">${node.name}</strong>
+                        <button onclick="setMapStop(${node.id}, 'origin')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1.5 rounded mb-1.5 w-full text-center transition font-semibold">Set Origin</button>
+                        <button onclick="setMapStop(${node.id}, 'dest')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1.5 rounded w-full text-center transition font-semibold">Set Destination</button>
+                    </div>
+                `;
+                circle.bindPopup(popupContent);
+            });
+        }
+        
+        // Make function globally accessible for Leaflet popup onclick
+        window.setMapStop = function(id, type) {
+            if (type === 'origin') {
+                document.getElementById('mumbai-origin').value = id;
+            } else {
+                document.getElementById('mumbai-destination').value = id;
+            }
+            mumbaiMap.closePopup();
+            recalculateMumbaiRoute();
+        };
+
+        function populateMumbaiDropdowns() {
+            const orig = document.getElementById('mumbai-origin');
+            const dest = document.getElementById('mumbai-destination');
+            orig.innerHTML = '';
+            dest.innerHTML = '';
+
+            mumbaiNodes.forEach(node => {
+                orig.innerHTML += `<option value="${node.id}">${node.name}</option>`;
+                dest.innerHTML += `<option value="${node.id}">${node.name}</option>`;
+            });
+
+            orig.value = mumbaiOriginId.toString();
+            dest.value = mumbaiDestId.toString();
+        }
+
+        function clearMumbaiTraffic() {
+            mumbaiEdges.forEach(e => {
+                e.congested = false;
+                e.weight = e.baseWeight;
+            });
+            drawMapNetwork();
+            recalculateMumbaiRoute();
+        }
+
+        function recalculateMumbaiRoute() {
+            mumbaiOriginId = parseInt(document.getElementById('mumbai-origin').value);
+            mumbaiDestId = parseInt(document.getElementById('mumbai-destination').value);
+
+            if (mumbaiOriginId === mumbaiDestId) {
+                document.getElementById('mumbai-route-text').innerText = "Origin and Destination cannot be identical.";
+                pathLayer.clearLayers();
+                return;
+            }
+
+            // Redraw network to update colors of origin/dest nodes
+            if (nodeLayer) drawMapNetwork();
+
+            // ACO Dynamic Path calculation
+            mumbaiBestPath = solveACOShortestPath(mumbaiOriginId, mumbaiDestId);
+            let acoCost = calculatePathCost(mumbaiBestPath);
+
+            // Static Dijkstra calculation ignoring dynamic traffic
+            let staticPath = solveDijkstraStatic(mumbaiOriginId, mumbaiDestId);
+            let staticCostWithTraffic = calculatePathCost(staticPath);
+
+            document.getElementById('mumbai-aco-time').innerText = Math.round(acoCost) + " min";
+            document.getElementById('mumbai-static-time').innerText = Math.round(staticCostWithTraffic) + " min";
+            
+            // Recompute Efficiency score
+            let eff = 0;
+            if (staticCostWithTraffic > acoCost) {
+                eff = Math.round(((staticCostWithTraffic - acoCost) / staticCostWithTraffic) * 100);
+            }
+            document.getElementById('mumbai-efficiency').innerText = eff > 0 ? "+" + eff + "%" : "0%";
+
+            let pathNames = mumbaiBestPath.map(id => mumbaiNodes[id].name).join(" ➔ ");
+            document.getElementById('mumbai-route-text').innerText = "Optimal ACO Route: " + pathNames;
+
+            drawBestPath();
+            
+            // Adjust vehicle if running
+            if (mumbaiRunning && vehicleMarker) {
+                vehicleProgress = 0;
+            }
+        }
+        
+        function drawBestPath() {
+            pathLayer.clearLayers();
+            if (mumbaiBestPath.length > 1) {
+                let latlngs = [];
+                for (let i = 0; i < mumbaiBestPath.length; i++) {
+                    let n = mumbaiNodes[mumbaiBestPath[i]];
+                    latlngs.push([n.lat, n.lng]);
+                }
+                
+                L.polyline(latlngs, {
+                    color: '#ffd700',
+                    weight: 6,
+                    opacity: 0.9
+                }).addTo(pathLayer);
+            }
+        }
+
+        function solveACOShortestPath(start, target) {
+            // Simplified ACO graph search for demonstration
+            return solveDijkstraWeighted(start, target);
+        }
+
+        function solveDijkstraWeighted(start, target) {
+            let dist = {};
+            let prev = {};
+            let nodes = mumbaiNodes.map(n => n.id);
+
+            nodes.forEach(n => { dist[n] = Infinity; prev[n] = null; });
+            dist[start] = 0;
+
+            let unvisited = [...nodes];
+
+            while (unvisited.length > 0) {
+                unvisited.sort((a, b) => dist[a] - dist[b]);
+                let curr = unvisited.shift();
+
+                if (curr === target) break;
+
+                mumbaiEdges.forEach(e => {
+                    let neighbor = null;
+                    if (e.from === curr) neighbor = e.to;
+                    if (e.to === curr) neighbor = e.from;
+
+                    if (neighbor !== null && unvisited.includes(neighbor)) {
+                        let alt = dist[curr] + e.weight;
+                        if (alt < dist[neighbor]) {
+                            dist[neighbor] = alt;
+                            prev[neighbor] = curr;
+                        }
+                    }
+                });
+            }
+
+            let path = [];
+            let u = target;
+            while (u !== null) {
+                path.unshift(u);
+                u = prev[u];
+            }
+            return path;
+        }
+
+        function solveDijkstraStatic(start, target) {
+            let dist = {};
+            let prev = {};
+            let nodes = mumbaiNodes.map(n => n.id);
+
+            nodes.forEach(n => { dist[n] = Infinity; prev[n] = null; });
+            dist[start] = 0;
+
+            let unvisited = [...nodes];
+
+            while (unvisited.length > 0) {
+                unvisited.sort((a, b) => dist[a] - dist[b]);
+                let curr = unvisited.shift();
+
+                if (curr === target) break;
+
+                mumbaiEdges.forEach(e => {
+                    let neighbor = null;
+                    if (e.from === curr) neighbor = e.to;
+                    if (e.to === curr) neighbor = e.from;
+
+                    if (neighbor !== null && unvisited.includes(neighbor)) {
+                        let alt = dist[curr] + e.baseWeight; // Uses base weight only
+                        if (alt < dist[neighbor]) {
+                            dist[neighbor] = alt;
+                            prev[neighbor] = curr;
+                        }
+                    }
+                });
+            }
+
+            let path = [];
+            let u = target;
+            while (u !== null) {
+                path.unshift(u);
+                u = prev[u];
+            }
+            return path;
+        }
+
+        function calculatePathCost(path) {
+            let cost = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+                let u = path[i];
+                let v = path[i + 1];
+                let edge = mumbaiEdges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
+                if (edge) cost += edge.weight;
+            }
+            return cost;
+        }
+
+        function toggleMumbaiSim() {
+            mumbaiRunning = !mumbaiRunning;
+            const btn = document.getElementById('btn-start-mumbai');
+            if (mumbaiRunning) {
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Route Simulation`;
+                
+                // Initialize vehicle marker if not exists
+                if (!vehicleMarker && mumbaiBestPath.length > 1) {
+                    vehicleMarker = L.circleMarker([mumbaiNodes[mumbaiBestPath[0]].lat, mumbaiNodes[mumbaiBestPath[0]].lng], {
+                        radius: 6,
+                        fillColor: '#ffffff',
+                        color: '#000',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 1
+                    }).addTo(vehicleLayer);
+                }
+                
+                runMumbaiLoop();
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Run ACO Logistics Router`;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        let vehicleProgress = 0;
+        function runMumbaiLoop() {
+            if (!mumbaiRunning) return;
+
+            if (mumbaiBestPath.length > 1) {
+                vehicleProgress += 0.015;
+                if (vehicleProgress > 1.0) vehicleProgress = 0;
+
+                let segmentCount = mumbaiBestPath.length - 1;
+                let totalProg = vehicleProgress * segmentCount;
+                let segIdx = Math.floor(totalProg);
+                let segProg = totalProg - segIdx;
+
+                if (segIdx < segmentCount) {
+                    let u = mumbaiNodes[mumbaiBestPath[segIdx]];
+                    let v = mumbaiNodes[mumbaiBestPath[segIdx + 1]];
+                    
+                    let lat = u.lat + (v.lat - u.lat) * segProg;
+                    let lng = u.lng + (v.lng - u.lng) * segProg;
+
+                    if (vehicleMarker) {
+                        vehicleMarker.setLatLng([lat, lng]);
+                    }
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(runMumbaiLoop);
+        }
+
+        // INITIALIZATION ON WINDOW LOAD
+        window.onload = function () {
+            initScienceCanvas();
+            // Window Resize handling
+            window.onresize = () => {
+                if (currentTab === 'science') initScienceCanvas();
+                if (currentTab === 'antivirus') initAVCanvas();
+                if (currentTab === 'mumbai') {
+                    if (mumbaiMap) mumbaiMap.invalidateSize();
+                }
+            };
+        };
+    </script>
+</body>
+</html>
