@@ -12,8 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- MathJax for high-quality mathematical LaTeX rendering -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- jsPDF for instant client-side PDF presentation generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Leaflet CSS & JS for Real Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -112,11 +110,11 @@
     <!-- TOP NAVIGATION HEADER -->
     <header class="border-b border-[#22222d] bg-[#0c0c10]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-            <!-- TOP LEFT CORNER PPT TO PDF BUTTON -->
-            <button onclick="openPresentationPDF()" id="btn-ppt-pdf" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-yellow-400 text-white font-bold text-xs shadow-lg shadow-red-600/20 border border-yellow-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer" title="Open Presentation in PDF Format in a New Tab">
+            <!-- TOP LEFT CORNER PPT PDF BUTTON (opens PDF from repository in a new tab) -->
+            <a href="presentation.pdf" target="_blank" rel="noopener" id="btn-ppt-pdf" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-yellow-400 text-white font-bold text-xs shadow-lg shadow-red-600/20 border border-yellow-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer" title="Open Presentation PDF in a New Tab">
                 <i class="fa-solid fa-file-pdf text-sm"></i>
                 <span>View PPT (PDF)</span>
-            </button>
+            </a>
 
             <div class="h-6 w-[1px] bg-[#282835] hidden sm:block"></div>
 
@@ -513,225 +511,9 @@
 
 
     <!-- =================================================================== -->
-    <!-- JAVASCRIPT SIMULATION & PDF PRESENTATION ENGINE                     -->
+    <!-- JAVASCRIPT SIMULATION ENGINE                                        -->
     <!-- =================================================================== -->
     <script>
-        // ===================================================================
-        // PPT TO PDF GENERATOR (OPENS IMMEDIATELY IN NEW TAB)
-        // ===================================================================
-        function openPresentationPDF() {
-            const btn = document.getElementById('btn-ppt-pdf');
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Opening PDF...</span>`;
-
-            // Pre-open a blank tab synchronously inside the click handler so popup blockers never block it
-            const pdfWindow = window.open('', '_blank');
-            if (pdfWindow) {
-                pdfWindow.document.write(`
-                    <html>
-                        <head><title>ANT COLONY OPTIMIZATION - Presentation PDF</title></head>
-                        <body style="margin:0;background:#0c0c10;color:#ffd700;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
-                            <div><h2>Generating Presentation PDF...</h2></div>
-                        </body>
-                    </html>
-                `);
-            }
-
-            setTimeout(() => {
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [960, 540] });
-
-                    const slides = [
-                        {
-                            title: "ANT COLONY OPTIMIZATION",
-                            subtitle: "Bio-Inspired Intelligent Algorithms — BTech Presentation",
-                            bullets: [
-                                "Presented by:",
-                                "   • Vidhi Raikundalia - C403",
-                                "   • Amrit Raj - C405",
-                                "   • Rushi Shah - C429",
-                                "   • Naishi Shah - C430"
-                            ]
-                        },
-                        {
-                            title: "CASE FILE: THE MISSING SHORTEST PATH",
-                            subtitle: "Biological Mystery & Emergent Intelligence",
-                            bullets: [
-                                "Location: Ant Colony   |   Subjects: Hundreds of Ants",
-                                "Objective: Reach Food   |   Complication: Multiple Possible Paths",
-                                "Some paths are short. Some are long. Some are completely inefficient.",
-                                "And yet, over time, an entire colony tends to settle on an efficient route.",
-                                "THE QUESTION IS... HOW?"
-                            ]
-                        },
-                        {
-                            title: "CONTENTS & PROBLEM STATEMENT",
-                            subtitle: "Overview of Presentation & Core Objectives",
-                            bullets: [
-                                "Contents: 01 Problem Statement | 02 Biological Phenomenon | 03 Applications | 04 Pros & Cons | 05 Research Timeline | 06 Statistics | 07 Summary & Future",
-                                "Problem Statement: Finding efficient paths using Ant Colony Optimization to solve tough pathfinding, network, and security problems smoothly and smartly.",
-                                "1. Antivirus Optimization: Using artificial ants to scan complex systems and find the minimal set of features needed to catch malicious files.",
-                                "2. Network Routing: Dynamically routing data packets across changing, high-traffic internet infrastructure.",
-                                "3. Logistics & Supply Chain: Finding the shortest, most efficient routes for delivery fleets."
-                            ]
-                        },
-                        {
-                            title: "BIOLOGY OF ANT COLONY & MECHANISM",
-                            subtitle: "The Biological System that Inspired the Computational Metaphor",
-                            bullets: [
-                                "Foraging & Exploration: Ants explore surroundings and initially search different routes.",
-                                "Pheromones & Indirect Communication: Ants leave chemical trails; other ants respond to these trails.",
-                                "Self-Organization & Collective Intelligence: Local interactions produce coordinated colony behaviour without central control.",
-                                "Mechanism Cycle: EXPLORE -> PHEROMONE -> REINFORCE -> EVAPORATE -> CONVERGE",
-                                "Key Principle: Shorter path -> Faster return -> More reinforcement!"
-                            ]
-                        },
-                        {
-                            title: "PHEROMONES & STIGMERGY",
-                            subtitle: "Nature's Trail-Following Behaviour -> ACO's Pheromone Mechanism",
-                            bullets: [
-                                "PHEROMONE: Chemical trails left by ants that guide the movement of other ants.",
-                                "Stronger trails influence path selection; trails evaporate over time to prevent taking outdated routes.",
-                                "STIGMERGY: Indirect communication through the environment where one ant's action influences another's behaviour.",
-                                "Eliminates the need for direct ant-to-ant communication or central coordination.",
-                                "Pheromone Trail -> Shared Information -> Collective Decision"
-                            ]
-                        },
-                        {
-                            title: "FROM BIOLOGY TO COMPUTER SCIENCE",
-                            subtitle: "01 Observe -> 02 Abstract -> 03 Model -> 04 Optimize",
-                            bullets: [
-                                "01 OBSERVE: Natural swarm intelligence in the wild; autonomous movement without maps or global oversight.",
-                                "02 ABSTRACT: Strip away physical clutter (dirt, ant legs, hardware details) into clean graph data structures.",
-                                "03 MODEL: Convert chemical ant trails into weighted graphs, nodes, and mathematical probability equations.",
-                                "04 OPTIMIZE: Deploy artificial software 'ants' that leave digital pheromone scores while evaporation fades bad paths.",
-                                "Bio-inspired computing: Observe Nature -> Extract Behaviour -> Build Algorithm -> Solve Complex Problems."
-                            ]
-                        },
-                        {
-                            title: "WHY DO WE NEED OPTIMIZATION & WHAT IS ACO?",
-                            subtitle: "Resource Scarcity, Goal & Problem Scale",
-                            bullets: [
-                                "Resource Scarcity: Time, money, fuel, and materials are strictly finite (e.g., minimizing delivery truck fuel).",
-                                "The Goal: Finding the best possible solution while balancing trade-offs (speed vs. cost vs. safety).",
-                                "The Problem Scale: Global shipping, flight scheduling, or power grids are too massive for brute-force calculation.",
-                                "What is ACO?: A probabilistic optimization technique inspired by the foraging behaviour of real ants.",
-                                "Shorter, more successful routes accumulate pheromone faster, making them increasingly attractive to future agents."
-                            ]
-                        },
-                        {
-                            title: "CORE COMPONENTS & MATHEMATICAL FORMULA",
-                            subtitle: "How an Artificial Ant Makes Probabilistic Decisions",
-                            bullets: [
-                                "Core Components: Artificial Ants, Pheromone Trails (Tau_ij), Heuristic Info (Eta_ij), Probabilistic Movement, Evaporation.",
-                                "Transition Formula: P_ij = [ (Tau_ij)^alpha * (Eta_ij)^beta ] / Sum( (Tau_il)^alpha * (Eta_il)^beta )",
-                                "Decision Steps: 1. Calculate path desirability -> 2. Calculate selection probability -> 3. Select next path.",
-                                "Pheromone Update: 1. Evaluate completed paths -> 2. Apply evaporation -> 3. Deposit new pheromone -> 4. Repeat.",
-                                "Exploration vs. Exploitation: Balanced via probabilistic choice and pheromone evaporation to avoid local traps."
-                            ]
-                        },
-                        {
-                            title: "TSP IMPLEMENTATION, VARIANTS & TIMELINE",
-                            subtitle: "Evolution of Ant Colony Optimization Models",
-                            bullets: [
-                                "Traveling Salesman Problem (TSP): Visit each city exactly once and return to start while minimizing total cost.",
-                                "Major ACO Variants: Ant System (AS), Elitist Ant System (EAS), MAX-MIN Ant System (MMAS), Ant Colony System (ACS), Rank-Based AS.",
-                                "Technical Strengths: Distributed Search, Positive Feedback, Adaptive Learning, Heuristic-Guided, Combinatorial Optimization.",
-                                "Research Timeline: 1992 (First Ant System) -> 1996 (Ant Colony System) -> 2001 (Multiobjective ACO) -> 2007 (GPU ACO) -> 2010 (Dynamic Logistics) -> 2020s (AI & Cybersecurity)."
-                            ]
-                        },
-                        {
-                            title: "INDUSTRIAL APPLICATIONS OF ACO",
-                            subtitle: "1. Antivirus Optimization | 2. Network Routing | 3. Logistics & Supply Chain",
-                            bullets: [
-                                "1. Antivirus Optimization: Static + Dynamic = Hybrid Analysis. Signature-Based (ACOLBSR 2021), Heuristic-Based (ACO + Rough Sets 2020), Behaviour-Based (Swarm Analysis 2022).",
-                                "2. Network Routing: Artificial ants evaluate delay, congestion, and packet loss to dynamically reroute packets in Wireless Sensor & Internet networks.",
-                                "3. Logistics & Supply Chain: Vehicle routing, warehouse robot paths, supply chain planning, and inventory scheduling."
-                            ]
-                        },
-                        {
-                            title: "ALGORITHM COMPARISON & FUTURE POSSIBILITIES",
-                            subtitle: "Comparing Bio-Inspired Algorithms (GA, ACO, SMA, PSO) & Next-Gen Domains",
-                            bullets: [
-                                "Comparison Metrics: Efficiency, Solution Quality, Convergence, Robustness, Scalability, Resource Usage, Adaptability.",
-                                "2025 Cybersecurity Research Data: ACO (7 features | 88.89% reduction | 97.65% accuracy) vs GA (34 features) & PSO (32 features).",
-                                "Future Possibilities: 1. Self-optimizing Cybersecurity | 2. Drug Discovery & Molecular Docking | 3. Genomics & Leukemia Gene Selection",
-                                "4. Swarm Robotics & Drone Fleets | 5. Smart Grids & Renewable Energy | 6. Medical Imaging | 7. Smart Cities (Mumbai Live Routing).",
-                                "THANK YOU! — References: PMC4436220, IGI-Global, Atlantis-Press."
-                            ]
-                        }
-                    ];
-
-                    slides.forEach((s, idx) => {
-                        if (idx > 0) doc.addPage([960, 540], 'landscape');
-
-                        // Dark Slide Background
-                        doc.setFillColor(12, 12, 18);
-                        doc.rect(0, 0, 960, 540, 'F');
-
-                        // Top Gold Accent Bar
-                        doc.setFillColor(255, 215, 0);
-                        doc.rect(0, 0, 960, 8, 'F');
-
-                        // Outer Subtle Frame
-                        doc.setDrawColor(50, 50, 70);
-                        doc.setLineWidth(1.5);
-                        doc.rect(25, 25, 910, 490);
-
-                        // Slide Title
-                        doc.setFont("helvetica", "bold");
-                        doc.setFontSize(26);
-                        doc.setTextColor(255, 215, 0);
-                        doc.text(s.title, 50, 72);
-
-                        // Slide Subtitle
-                        doc.setFont("helvetica", "italic");
-                        doc.setFontSize(14);
-                        doc.setTextColor(170, 170, 195);
-                        doc.text(s.subtitle, 50, 98);
-
-                        // Divider Line
-                        doc.setDrawColor(255, 215, 0);
-                        doc.setLineWidth(0.8);
-                        doc.line(50, 112, 910, 112);
-
-                        // Slide Content Bullets
-                        doc.setFont("helvetica", "normal");
-                        doc.setFontSize(15);
-                        doc.setTextColor(240, 240, 248);
-
-                        let y = 150;
-                        s.bullets.forEach(line => {
-                            const wrapped = doc.splitTextToSize("•  " + line, 840);
-                            doc.text(wrapped, 55, y);
-                            y += (wrapped.length * 24) + 12;
-                        });
-
-                        // Footer
-                        doc.setFont("helvetica", "normal");
-                        doc.setFontSize(10);
-                        doc.setTextColor(120, 120, 140);
-                        doc.text(`ANT COLONY OPTIMIZATION  |  Vidhi (C403), Amrit (C405), Rushi (C429), Naishi (C430)`, 50, 498);
-                        doc.text(`Slide ${idx + 1} of ${slides.length}`, 840, 498);
-                    });
-
-                    const pdfBlob = doc.output('blob');
-                    const blobUrl = URL.createObjectURL(pdfBlob);
-
-                    if (pdfWindow) {
-                        pdfWindow.location.href = blobUrl;
-                    } else {
-                        window.open(blobUrl, '_blank');
-                    }
-                } catch (err) {
-                    console.error("PDF generation failed:", err);
-                } finally {
-                    btn.innerHTML = originalHTML;
-                }
-            }, 50);
-        }
-
         // Global Tab Management
         let currentTab = 'science';
 
