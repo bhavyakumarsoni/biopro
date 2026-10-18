@@ -1132,6 +1132,7 @@
         let mumbaiOriginId = 0;
         let mumbaiDestId = 5; // Default CST to Airport
         let mumbaiBestPath = [];
+        let mumbaiBestPathLatLngs = []; // Stores the continuous road coordinates
         
         // Leaflet layer groups
         let nodeLayer, edgeLayer, pathLayer, vehicleLayer;
@@ -1152,7 +1153,7 @@
                 pathLayer = L.layerGroup().addTo(mumbaiMap);
                 vehicleLayer = L.layerGroup().addTo(mumbaiMap);
 
-                setupMumbaiTopology();
+                setupMumbaiTopologyAsync();
                 populateMumbaiDropdowns();
             }
 
@@ -1164,12 +1165,12 @@
             }, 200);
         }
 
-        function setupMumbaiTopology() {
+        async function setupMumbaiTopologyAsync() {
             // Real Lat/Lng coordinates for Mumbai Map
             mumbaiNodes = [
                 { id: 0, name: 'CST / Fort', lat: 18.9400, lng: 72.8350 },
                 { id: 1, name: 'Dadar', lat: 19.0180, lng: 72.8430 },
-                { id: 2, name: 'Bandra (WEH)', lat: 19.0530, lng: 72.8410 }, // Shifted East to strictly follow the land highway (Mahim Causeway)
+                { id: 2, name: 'Bandra', lat: 19.0550, lng: 72.8300 },
                 { id: 3, name: 'BKC Hub', lat: 19.0660, lng: 72.8650 },
                 { id: 4, name: 'Andheri', lat: 19.1190, lng: 72.8460 },
                 { id: 5, name: 'Mumbai Airport (BOM)', lat: 19.0900, lng: 72.8630 },
@@ -1180,7 +1181,7 @@
 
             mumbaiEdges = [
                 { from: 0, to: 1, name: 'Eastern Highway South', baseWeight: 18, weight: 18, congested: false },
-                { from: 1, to: 2, name: 'Mahim Causeway / WEH', baseWeight: 12, weight: 12, congested: false }, // Renamed to reflect the land route
+                { from: 1, to: 2, name: 'Dadar West Arterial', baseWeight: 12, weight: 12, congested: false },
                 { from: 1, to: 3, name: 'BKC Connector', baseWeight: 10, weight: 10, congested: false },
                 { from: 2, to: 3, name: 'Bandra-BKC Link', baseWeight: 8, weight: 8, congested: false },
                 { from: 2, to: 4, name: 'Western Express Hwy (WEH)', baseWeight: 22, weight: 22, congested: false },
@@ -1192,7 +1193,30 @@
                 { from: 7, to: 8, name: 'Thane-Belapur Road', baseWeight: 20, weight: 20, congested: false }
             ];
             
+            drawMapNetwork(); // Initial straight lines while loading
+
+            // Dynamically fetch actual road routes using OSRM API
+            let fetchPromises = mumbaiEdges.map(async (edge) => {
+                let n1 = mumbaiNodes[edge.from];
+                let n2 = mumbaiNodes[edge.to];
+                try {
+                    let res = await fetch(`https://router.project-osrm.org/route/v1/driving/${n1.lng},${n1.lat};${n2.lng},${n2.lat}?overview=full&geometries=geojson`);
+                    let data = await res.json();
+                    if (data.routes && data.routes.length > 0) {
+                        edge.latlngs = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    } else {
+                        edge.latlngs = [[n1.lat, n1.lng], [n2.lat, n2.lng]];
+                    }
+                } catch (e) {
+                    edge.latlngs = [[n1.lat, n1.lng], [n2.lat, n2.lng]];
+                }
+            });
+
+            await Promise.all(fetchPromises);
+            
+            // Redraw perfectly mapped routes
             drawMapNetwork();
+            recalculateMumbaiRoute();
         }
 
         function drawMapNetwork() {
@@ -1201,13 +1225,12 @@
 
             // Draw Edges
             mumbaiEdges.forEach(edge => {
-                let n1 = mumbaiNodes[edge.from];
-                let n2 = mumbaiNodes[edge.to];
+                let pts = edge.latlngs || [[mumbaiNodes[edge.from].lat, mumbaiNodes[edge.from].lng], [mumbaiNodes[edge.to].lat, mumbaiNodes[edge.to].lng]];
                 
                 let color = edge.congested ? '#ef4444' : '#3f3f5a';
                 let weight = edge.congested ? 6 : 4;
 
-                let polyline = L.polyline([[n1.lat, n1.lng], [n2.lat, n2.lng]], {
+                let polyline = L.polyline(pts, {
                     color: color,
                     weight: weight,
                     opacity: 0.8
@@ -1294,6 +1317,7 @@
             if (mumbaiOriginId === mumbaiDestId) {
                 document.getElementById('mumbai-route-text').innerText = "Origin and Destination cannot be identical.";
                 pathLayer.clearLayers();
+                mumbaiBestPathLatLngs = [];
                 return;
             }
 
@@ -1331,14 +1355,27 @@
         
         function drawBestPath() {
             pathLayer.clearLayers();
+            mumbaiBestPathLatLngs = [];
+
             if (mumbaiBestPath.length > 1) {
-                let latlngs = [];
-                for (let i = 0; i < mumbaiBestPath.length; i++) {
-                    let n = mumbaiNodes[mumbaiBestPath[i]];
-                    latlngs.push([n.lat, n.lng]);
+                for (let i = 0; i < mumbaiBestPath.length - 1; i++) {
+                    let u = mumbaiBestPath[i];
+                    let v = mumbaiBestPath[i + 1];
+                    let edge = mumbaiEdges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
+                    
+                    if (edge && edge.latlngs) {
+                        let pts = [...edge.latlngs];
+                        if (edge.from !== u) pts.reverse(); // Maintain directional continuity
+                        mumbaiBestPathLatLngs = mumbaiBestPathLatLngs.concat(pts);
+                    } else {
+                        mumbaiBestPathLatLngs.push([mumbaiNodes[u].lat, mumbaiNodes[u].lng]);
+                        if (i === mumbaiBestPath.length - 2) {
+                            mumbaiBestPathLatLngs.push([mumbaiNodes[v].lat, mumbaiNodes[v].lng]);
+                        }
+                    }
                 }
                 
-                L.polyline(latlngs, {
+                L.polyline(mumbaiBestPathLatLngs, {
                     color: '#ffd700',
                     weight: 6,
                     opacity: 0.9
@@ -1449,8 +1486,8 @@
                 btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Route Simulation`;
                 
                 // Initialize vehicle marker if not exists
-                if (!vehicleMarker && mumbaiBestPath.length > 1) {
-                    vehicleMarker = L.circleMarker([mumbaiNodes[mumbaiBestPath[0]].lat, mumbaiNodes[mumbaiBestPath[0]].lng], {
+                if (!vehicleMarker && mumbaiBestPathLatLngs.length > 0) {
+                    vehicleMarker = L.circleMarker(mumbaiBestPathLatLngs[0], {
                         radius: 6,
                         fillColor: '#ffffff',
                         color: '#000',
@@ -1468,28 +1505,47 @@
         }
 
         let vehicleProgress = 0;
+        
+        function getLatLngOnPath(latlngs, progress) {
+            if (!latlngs || latlngs.length === 0) return null;
+            if (latlngs.length === 1) return latlngs[0];
+            if (progress <= 0) return latlngs[0];
+            if (progress >= 1) return latlngs[latlngs.length - 1];
+
+            let totalDist = 0;
+            let dists = [];
+            for (let i = 0; i < latlngs.length - 1; i++) {
+                let d = Math.hypot(latlngs[i+1][0]-latlngs[i][0], latlngs[i+1][1]-latlngs[i][1]);
+                dists.push(d);
+                totalDist += d;
+            }
+
+            if (totalDist === 0) return latlngs[0];
+
+            let targetDist = totalDist * progress;
+            let accum = 0;
+            for (let i = 0; i < dists.length; i++) {
+                if (accum + dists[i] >= targetDist) {
+                    let segProg = (targetDist - accum) / dists[i];
+                    let lat = latlngs[i][0] + (latlngs[i+1][0] - latlngs[i][0]) * segProg;
+                    let lng = latlngs[i][1] + (latlngs[i+1][1] - latlngs[i][1]) * segProg;
+                    return [lat, lng];
+                }
+                accum += dists[i];
+            }
+            return latlngs[latlngs.length - 1];
+        }
+
         function runMumbaiLoop() {
             if (!mumbaiRunning) return;
 
-            if (mumbaiBestPath.length > 1) {
-                vehicleProgress += 0.015;
+            if (mumbaiBestPathLatLngs.length > 1) {
+                vehicleProgress += 0.003; // Smooth speed factor
                 if (vehicleProgress > 1.0) vehicleProgress = 0;
 
-                let segmentCount = mumbaiBestPath.length - 1;
-                let totalProg = vehicleProgress * segmentCount;
-                let segIdx = Math.floor(totalProg);
-                let segProg = totalProg - segIdx;
-
-                if (segIdx < segmentCount) {
-                    let u = mumbaiNodes[mumbaiBestPath[segIdx]];
-                    let v = mumbaiNodes[mumbaiBestPath[segIdx + 1]];
-                    
-                    let lat = u.lat + (v.lat - u.lat) * segProg;
-                    let lng = u.lng + (v.lng - u.lng) * segProg;
-
-                    if (vehicleMarker) {
-                        vehicleMarker.setLatLng([lat, lng]);
-                    }
+                let currentPos = getLatLngOnPath(mumbaiBestPathLatLngs, vehicleProgress);
+                if (currentPos && vehicleMarker) {
+                    vehicleMarker.setLatLng(currentPos);
                 }
             }
 
