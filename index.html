@@ -110,8 +110,8 @@
     <!-- TOP NAVIGATION HEADER -->
     <header class="border-b border-[#22222d] bg-[#0c0c10]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-            <!-- TOP LEFT CORNER PPT PDF BUTTON (opens PDF from repository in a new tab) -->
-            <a href="ANT COLONY OPTIMIZATION.pdf" target="_blank" rel="noopener" id="btn-ppt-pdf" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-yellow-400 text-white font-bold text-xs shadow-lg shadow-red-600/20 border border-yellow-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer" title="Open Presentation PDF in a New Tab">
+            <!-- TOP LEFT CORNER PPT TO PDF BUTTON -->
+            <a href="./ANT%20COLONY%20OPTIMIZATION.pdf" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-yellow-400 text-white font-bold text-xs shadow-lg shadow-red-600/20 border border-yellow-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer no-underline" title="Open Presentation PDF in a New Tab">
                 <i class="fa-solid fa-file-pdf text-sm"></i>
                 <span>View PPT (PDF)</span>
             </a>
@@ -146,369 +146,315 @@
     <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 space-y-6">
 
         <!-- =================================================================== -->
-        <!-- SECTION 1: CORE ACO SCIENCE & TSP FORAGING SIMULATOR               -->
+        <!-- SECTION 1: ACO SCIENCE & CORE TSP SIMULATION                        -->
         <!-- =================================================================== -->
         <section id="sec-science" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- CONTROLS & PARAMS PANEL -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-sliders text-yellow-400"></i> Hyperparameter Controls
-                            </h2>
-                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">TSP Graph</span>
-                        </div>
-
-                        <div class="space-y-4">
-                            <!-- Alpha Control -->
+                <!-- Left Control Panel -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#262630] rounded-2xl p-5 flex flex-col justify-between space-y-5 shadow-xl">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-[#262630] pb-3">
                             <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Pheromone Importance (&alpha;)</span>
-                                    <span id="val-alpha" class="text-yellow-400 font-mono">1.0</span>
-                                </div>
-                                <input type="range" id="param-alpha" min="0" max="5" step="0.1" value="1.0" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values give greater weight to existing pheromone trails (Exploitation).</p>
+                                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-sliders text-yellow-400"></i> Swarm Hyperparameters
+                                </h2>
+                                <p class="text-xs text-gray-400">Tune mathematical weights in real-time</p>
                             </div>
+                            <span id="status-science" class="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30 font-mono">Idle</span>
+                        </div>
 
-                            <!-- Beta Control -->
+                        <!-- Sliders -->
+                        <div class="space-y-3">
                             <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Heuristic/Distance Weight (&beta;)</span>
-                                    <span id="val-beta" class="text-yellow-400 font-mono">2.5</span>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">\(\alpha\) (Pheromone Importance)</span>
+                                    <span id="val-alpha" class="text-yellow-400 font-mono font-bold">1.0</span>
                                 </div>
-                                <input type="range" id="param-beta" min="0" max="8" step="0.1" value="2.5" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values prefer shorter distances between nodes (Exploration heuristic).</p>
-                            </div>
-
-                            <!-- Evaporation Rate Control -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Evaporation Rate (&rho;)</span>
-                                    <span id="val-rho" class="text-yellow-400 font-mono">0.05</span>
-                                </div>
-                                <input type="range" id="param-rho" min="0.01" max="0.3" step="0.01" value="0.05" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Rate at which chemical trails fade over time to prevent sub-optimal traps.</p>
-                            </div>
-
-                            <!-- Ant Count -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Ant Swarm Population</span>
-                                    <span id="val-ants" class="text-yellow-400 font-mono">40</span>
-                                </div>
-                                <input type="range" id="param-ants" min="5" max="150" step="5" value="40" class="w-full" oninput="updateScienceParams()">
-                            </div>
-
-                            <!-- Node Preset / Preset buttons -->
-                            <div>
-                                <label class="text-xs font-semibold text-gray-300 block mb-1">Graph Topology Presets</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button onclick="loadNodePreset('circle')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Circle</button>
-                                    <button onclick="loadNodePreset('random')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Random 12</button>
-                                    <button onclick="loadNodePreset('clusters')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Clusters</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CONTROL BUTTONS -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="btn-start-science" onclick="toggleScienceSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
-                                <i class="fa-solid fa-play"></i> Start Swarm
-                            </button>
-                            <button onclick="resetScienceSim()" class="w-full py-2.5 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold rounded-xl border border-[#2f2f40] transition flex items-center justify-center gap-2 text-sm">
-                                <i class="fa-solid fa-rotate-right"></i> Reset
-                            </button>
-                        </div>
-                        <p class="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-mouse"></i> Click canvas to manually insert target nodes
-                        </p>
-                    </div>
-                </div>
-
-                <!-- CANVAS VISUALIZER -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">Foraging Space &amp; Pheromone Topology</h3>
-                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono" id="status-science">Idle</span>
-                        </div>
-                        <div class="flex gap-4 text-xs font-mono">
-                            <div><span class="text-gray-400">Nodes:</span> <span id="stat-nodes" class="text-yellow-400 font-bold">12</span></div>
-                            <div><span class="text-gray-400">Iterations:</span> <span id="stat-iter" class="text-yellow-400 font-bold">0</span></div>
-                            <div><span class="text-gray-400">Best Distance:</span> <span id="stat-dist" class="text-yellow-400 font-bold">--</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Canvas container with absolute dynamic sizing -->
-                    <div class="relative w-full h-[480px] bg-[#08080a] rounded-xl overflow-hidden border border-[#1e1e28] flex items-center justify-center">
-                        <canvas id="canvas-science" class="w-full h-full cursor-crosshair"></canvas>
-                    </div>
-
-                    <!-- Pheromone Intensity Legend -->
-                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
-                        <div class="flex items-center gap-2">
-                            <span>Low Pheromone</span>
-                            <div class="w-24 h-2 rounded-full bg-gradient-to-r from-[#222210] via-yellow-600 to-yellow-400"></div>
-                            <span class="text-yellow-400 font-semibold">High Intensity (\(\tau\))</span>
-                        </div>
-                        <div class="text-[11px] text-gray-500">
-                            Gold glowing lines = Consolidated short path
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MATH & THEORY DETAILED BREAKDOWN SECTION -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Mathematical Formula Breakdown -->
-                <div class="lg:col-span-7 bg-[#121216] border border-[#22222e] rounded-2xl p-6 space-y-4">
-                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-square-root-variable"></i> ACO Mathematical Working Principle
-                    </h3>
-                    
-                    <div class="bg-[#0a0a0e] p-4 rounded-xl border border-[#222230] text-center overflow-x-auto">
-                        <p class="text-xs text-gray-400 mb-2">State Transition Rule (Probabilistic Choice of Ant \(k\) from node \(i\) to \(j\)):</p>
-                        <div class="text-lg text-yellow-300 font-mono py-1">
-                            $$P_{ij}^k = \frac{(\tau_{ij})^\alpha \cdot (\eta_{ij})^\beta}{\sum_{l \in \text{allowed}_k} (\tau_{il})^\alpha \cdot (\eta_{il})^\beta}$$
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-300">
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">1. Pheromone Concentration (\(\tau_{ij}\))</span>
-                            Represents collective swarm memory. When an ant completes a tour, it deposits pheromone inversely proportional to path length \(\Delta \tau = Q / L_k\).
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">2. Heuristic Desirability (\(\eta_{ij}\))</span>
-                            Local visibility heuristic, calculated as \(\eta_{ij} = \frac{1}{d_{ij}}\) where \(d_{ij}\) is Euclidean distance or delay cost between nodes.
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">3. Evaporation Decay (\(\rho\))</span>
-                            Updated via \(\tau_{ij} \leftarrow (1-\rho)\tau_{ij}\). Evaporation eliminates poor decisions and prevents global stagnation in local optima.
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">4. Stigmergic Communication</span>
-                            Indirect coordination through environmental modification. Ants do not talk directly; they communicate via chemical density trails.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Real-time Convergence Chart -->
-                <div class="lg:col-span-5 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between">
-                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 mb-3 flex items-center justify-between">
-                        <span><i class="fa-solid fa-chart-line"></i> Optimization Convergence</span>
-                        <span class="text-xs text-gray-400 font-normal">Best Path Cost vs Iterations</span>
-                    </h3>
-                    <div class="relative w-full h-[220px] bg-[#0a0a0e] rounded-xl p-2 border border-[#1d1d28]">
-                        <canvas id="chart-science-convergence"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- =================================================================== -->
-        <!-- SECTION 2: ANTIVIRUS SCAN & THREAT PATHING SIMULATOR               -->
-        <!-- =================================================================== -->
-        <section id="sec-antivirus" class="space-y-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left Sidebar: Settings & Threat Injection Controls -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-shield-virus"></i> Threat Detector Config
-                            </h2>
-                            <span class="text-xs bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 font-mono">AV Engine</span>
-                        </div>
-
-                        <p class="text-xs text-gray-400 mb-4">
-                            Antivirus ACO models heuristic file-system scanning. Virtual detection agents follow memory signature heuristics and leave trails where threat clusters are discovered.
-                        </p>
-
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Detection Agent Count</span>
-                                    <span id="val-av-ants" class="text-yellow-400 font-mono">25</span>
-                                </div>
-                                <input type="range" id="param-av-ants" min="5" max="60" step="5" value="25" class="w-full" oninput="document.getElementById('val-av-ants').innerText=this.value">
+                                <input type="range" id="param-alpha" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateScienceParams()" class="w-full">
                             </div>
 
                             <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Scan Frequency Speed</span>
-                                    <span id="val-av-speed" class="text-yellow-400 font-mono">Medium</span>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">\(\beta\) (Heuristic / Distance Priority)</span>
+                                    <span id="val-beta" class="text-yellow-400 font-mono font-bold">2.5</span>
                                 </div>
-                                <input type="range" id="param-av-speed" min="1" max="3" step="1" value="2" class="w-full" oninput="updateAVSpeedLabel(this.value)">
+                                <input type="range" id="param-beta" min="0.1" max="5.0" step="0.1" value="2.5" oninput="updateScienceParams()" class="w-full">
                             </div>
 
-                            <div class="p-3 bg-[#171720] rounded-xl border border-[#252535] space-y-3">
-                                <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Simulate Malware Attack</h4>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <button onclick="injectRandomThreat()" class="w-full px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-700/50 text-red-300 text-xs rounded-lg font-medium transition flex items-center gap-2 justify-center">
-                                        <i class="fa-solid fa-virus-slash"></i> Inject Random Threat Scenario
-                                    </button>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">\(\rho\) (Pheromone Evaporation Rate)</span>
+                                    <span id="val-rho" class="text-yellow-400 font-mono font-bold">0.05</span>
                                 </div>
+                                <input type="range" id="param-rho" min="0.01" max="0.50" step="0.01" value="0.05" oninput="updateScienceParams()" class="w-full">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">Ant Colony Population (\(M\))</span>
+                                    <span id="val-ants" class="text-yellow-400 font-mono font-bold">40</span>
+                                </div>
+                                <input type="range" id="param-ants" min="5" max="100" step="5" value="40" oninput="updateScienceParams()" class="w-full">
                             </div>
                         </div>
-                    </div>
 
-                    <!-- AV Control Action Buttons -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <button id="btn-start-av" onclick="toggleAVScan()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
-                            <i class="fa-solid fa-radar"></i> Initiate Heuristic Scan
-                        </button>
-                        <button onclick="resetAVScan()" class="w-full py-2 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold text-xs rounded-xl border border-[#2f2f40] transition">
-                            Clear Scan Log &amp; Re-initialize Nodes
-                        </button>
-                    </div>
-                </div>
-
-                <!-- AV File System Node Graph Visualizer -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">System Directory Node &amp; Threat Signature Topology</h3>
-                            <span id="status-av" class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono">System Clean</span>
-                        </div>
-                        <div class="flex gap-4 text-xs font-mono">
-                            <div><span class="text-gray-400">Scanned:</span> <span id="stat-av-scanned" class="text-yellow-400 font-bold">0 %</span></div>
-                            <div><span class="text-gray-400">Threats Found:</span> <span id="stat-av-threats" class="text-red-400 font-bold">0</span></div>
-                            <div><span class="text-gray-400">CPU Overhead Savings:</span> <span id="stat-av-cpu" class="text-emerald-400 font-bold">38%</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Canvas for Antivirus Node Graph -->
-                    <div class="relative w-full h-[460px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
-                        <canvas id="canvas-antivirus" class="w-full h-full"></canvas>
-                    </div>
-
-                    <!-- Live Security Agent Terminal Log -->
-                    <div class="mt-3 bg-[#0a0a0d] border border-[#1e1e28] rounded-xl p-3 h-28 overflow-y-auto font-mono text-[11px] space-y-1" id="av-log-container">
-                        <p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- =================================================================== -->
-        <!-- SECTION 3: MUMBAI LOGISTICS & DYNAMIC NETWORK ROUTER              -->
-        <!-- =================================================================== -->
-        <section id="sec-mumbai" class="space-y-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Mumbai Logistics Settings Panel -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-route"></i> Mumbai Transit Hubs
-                            </h2>
-                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">Real-world Map</span>
+                        <!-- Graph Presets -->
+                        <div class="pt-2 border-t border-[#262630]">
+                            <label class="text-xs text-gray-400 block mb-2">Topology Presets (or click canvas to add nodes):</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="loadNodePreset('random')" class="px-3 py-1.5 rounded-lg bg-[#1a1a22] hover:bg-[#252530] text-xs text-gray-200 border border-[#2e2e3d] transition">Random 12</button>
+                                <button onclick="loadNodePreset('circle')" class="px-3 py-1.5 rounded-lg bg-[#1a1a22] hover:bg-[#252530] text-xs text-gray-200 border border-[#2e2e3d] transition">Ring Loop</button>
+                                <button onclick="loadNodePreset('clusters')" class="px-3 py-1.5 rounded-lg bg-[#1a1a22] hover:bg-[#252530] text-xs text-gray-200 border border-[#2e2e3d] transition">3 Clusters</button>
+                            </div>
                         </div>
 
-                        <div class="space-y-4 text-xs">
-                            <!-- Origin & Destination Selector -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-gray-300 font-semibold mb-1">Source Hub</label>
-                                    <select id="mumbai-origin" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
-                                        <!-- Dynamically Populated -->
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-gray-300 font-semibold mb-1">Destination</label>
-                                    <select id="mumbai-destination" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
-                                        <!-- Dynamically Populated -->
-                                    </select>
-                                </div>
+                        <!-- Mathematical Formula Card -->
+                        <div class="bg-[#0b0b0e] border border-[#22222c] rounded-xl p-3 text-xs space-y-1">
+                            <div class="text-yellow-400 font-semibold mb-1"><i class="fa-solid fa-square-root-variable"></i> State Transition Rule:</div>
+                            <div class="overflow-x-auto py-1 text-center text-gray-200">
+                                $$P_{ij}^k = \frac{[\tau_{ij}]^\alpha \cdot [\eta_{ij}]^\beta}{\sum_{l \in \text{allowed}} [\tau_{il}]^\alpha \cdot [\eta_{il}]^\beta}$$
                             </div>
-
-                            <!-- Interactive Traffic Injector Instructions -->
-                            <div class="bg-[#171722] p-3 rounded-xl border border-[#28283a] space-y-2">
-                                <span class="font-bold text-yellow-400 flex items-center gap-2 text-xs">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> Dynamic Traffic Congestion Simulator
-                                </span>
-                                <p class="text-gray-400 text-[11px]">
-                                    Click on any highway corridor (edge line) on the map to add high traffic congestion (WEH, Sea Link, EEH). ACO ants will dynamically reroute!
-                                </p>
-                                <button onclick="clearMumbaiTraffic()" class="w-full py-1.5 bg-[#222230] hover:bg-[#2c2c3e] text-gray-300 rounded border border-[#35354a] text-xs font-semibold">
-                                    Clear Traffic Congestion
-                                </button>
-                            </div>
-
-                            <!-- Route Stats comparison table -->
-                            <div class="bg-[#0a0a0d] p-3 rounded-xl border border-[#1e1e28] space-y-2">
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-400">ACO Swarm Best Path:</span>
-                                    <span id="mumbai-aco-time" class="text-yellow-400 font-bold font-mono">-- min</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-400">Static Shortest (Dijkstra):</span>
-                                    <span id="mumbai-static-time" class="text-gray-300 font-bold font-mono">-- min</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs pt-2 border-t border-[#1e1e28]">
-                                    <span class="text-emerald-400 font-semibold">Traffic Adaptation Score:</span>
-                                    <span id="mumbai-efficiency" class="text-emerald-400 font-bold font-mono">+94%</span>
-                                </div>
-                            </div>
+                            <p class="text-[11px] text-gray-400 leading-relaxed">
+                                Where \(\tau_{ij}\) is pheromone intensity and \(\eta_{ij} = 1/d_{ij}\) is heuristic desirability.
+                            </p>
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <button id="btn-start-mumbai" onclick="toggleMumbaiSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
+                    <div class="flex gap-2 pt-2">
+                        <button id="btn-start-science" onclick="toggleScienceSim()" class="flex-1 py-2.5 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-sm shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> Start Swarm
+                        </button>
+                        <button onclick="resetScienceSim()" class="py-2.5 px-4 rounded-xl bg-[#1e1e28] hover:bg-[#2a2a38] text-gray-300 font-semibold text-sm border border-[#323242] transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-rotate-right"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Interactive Canvas & Live Chart -->
+                <div class="lg:col-span-8 flex flex-col gap-6">
+                    <!-- Canvas Card -->
+                    <div class="bg-[#121216] border border-[#262630] rounded-2xl p-4 flex flex-col space-y-3 shadow-xl">
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                                <h3 class="text-sm font-bold text-white">Interactive Pheromone Matrix &amp; TSP Solver (Click Canvas to Add Cities)</h3>
+                            </div>
+                            <div class="flex items-center gap-4 text-xs font-mono">
+                                <div>Nodes: <span id="stat-nodes" class="text-yellow-400 font-bold">12</span></div>
+                                <div>Iteration: <span id="stat-iter" class="text-yellow-400 font-bold">0</span></div>
+                                <div>Best Tour: <span id="stat-dist" class="text-emerald-400 font-bold">--</span></div>
+                            </div>
+                        </div>
+
+                        <div class="relative w-full h-[380px] rounded-xl overflow-hidden border border-[#22222c] bg-[#08080a]">
+                            <canvas id="canvas-science" class="w-full h-full cursor-crosshair"></canvas>
+                        </div>
+
+                        <div class="flex flex-wrap justify-between items-center text-[11px] text-gray-400 px-1">
+                            <span><i class="fa-solid fa-circle text-yellow-400 mr-1"></i> Gold Line Thickness = Pheromone Concentration (\(\tau_{ij}\))</span>
+                            <span><i class="fa-solid fa-minus text-emerald-400 mr-1"></i> Cyan Dashed Line = Global Best Tour Discovered</span>
+                        </div>
+                    </div>
+
+                    <!-- Convergence Chart Card -->
+                    <div class="bg-[#121216] border border-[#262630] rounded-2xl p-4 shadow-xl">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-yellow-400"></i> Real-Time Tour Cost Convergence
+                        </h3>
+                        <div class="w-full h-[140px]">
+                            <canvas id="chart-science-convergence"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- SECTION 2: ANTIVIRUS HEURISTIC SWARM SCANNER                        -->
+        <!-- =================================================================== -->
+        <section id="sec-antivirus" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Controls & Logs -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#262630] rounded-2xl p-5 flex flex-col justify-between space-y-5 shadow-xl">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-[#262630] pb-3">
+                            <div>
+                                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-shield-virus text-yellow-400"></i> Heuristic Swarm Defense
+                                </h2>
+                                <p class="text-xs text-gray-400">Stigmergic Malware Localization</p>
+                            </div>
+                            <span id="status-av" class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono">System Clean</span>
+                        </div>
+
+                        <!-- Sliders -->
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">Active Security Ant Agents</span>
+                                    <span class="text-yellow-400 font-mono font-bold">25</span>
+                                </div>
+                                <input type="range" id="param-av-ants" min="10" max="60" step="5" value="25" onchange="resetAVScan()" class="w-full">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-300 font-medium">Agent Traversal Speed</span>
+                                    <span id="val-av-speed" class="text-yellow-400 font-mono font-bold">Medium</span>
+                                </div>
+                                <input type="range" id="param-av-speed" min="1" max="3" step="1" value="2" oninput="updateAVSpeedLabel(this.value)" class="w-full">
+                            </div>
+                        </div>
+
+                        <!-- Threat Injection -->
+                        <div class="pt-2 border-t border-[#262630] space-y-2">
+                            <label class="text-xs text-gray-400 block">1. Inject Hidden Malware into File Tree:</label>
+                            <button onclick="injectRandomThreat()" class="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 font-semibold text-xs transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-biohazard"></i> Inject Random Threat Scenario
+                            </button>
+                        </div>
+
+                        <!-- Stats Box -->
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <div class="bg-[#0b0b0e] border border-[#22222c] p-3 rounded-xl">
+                                <div class="text-[11px] text-gray-400">Nodes Audited</div>
+                                <div id="stat-av-scanned" class="text-lg font-bold text-emerald-400 font-mono">0%</div>
+                            </div>
+                            <div class="bg-[#0b0b0e] border border-[#22222c] p-3 rounded-xl">
+                                <div class="text-[11px] text-gray-400">Confirmed Threats</div>
+                                <div id="stat-av-threats" class="text-lg font-bold text-red-400 font-mono">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Event Log -->
+                        <div class="space-y-1">
+                            <label class="text-xs text-gray-400 block">Swarm Telemetry Log:</label>
+                            <div id="av-log-container" class="bg-[#08080a] border border-[#22222c] rounded-xl p-3 h-36 overflow-y-auto font-mono text-[11px] space-y-1.5">
+                                <p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scan Action Buttons -->
+                    <div class="flex gap-2 pt-2">
+                        <button id="btn-start-av" onclick="toggleAVScan()" class="flex-1 py-2.5 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-sm shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-radar"></i> Initiate Heuristic Scan
+                        </button>
+                        <button onclick="resetAVScan()" class="py-2.5 px-4 rounded-xl bg-[#1e1e28] hover:bg-[#2a2a38] text-gray-300 font-semibold text-sm border border-[#323242] transition">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right File Tree Canvas -->
+                <div class="lg:col-span-8 bg-[#121216] border border-[#262630] rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-network-wired text-yellow-400"></i> OS Directory Graph &amp; Pheromone Threat Isolation
+                        </h3>
+                        <span class="text-xs text-gray-400">Stronger threat signals attract the entire colony to isolate the infected branch</span>
+                    </div>
+
+                    <div class="relative w-full h-[500px] rounded-xl overflow-hidden border border-[#22222c] bg-[#07070a]">
+                        <canvas id="canvas-antivirus" class="w-full h-full"></canvas>
+                    </div>
+
+                    <div class="flex flex-wrap justify-between items-center text-xs text-gray-400 px-1 gap-2">
+                        <div class="flex items-center gap-4">
+                            <span><span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1"></span> Clean Audited Node</span>
+                            <span><span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 mr-1"></span> Infected / Suspicious Node</span>
+                        </div>
+                        <span>Gold Trails = Danger Pheromone Backpropagation</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- SECTION 3: MUMBAI LOGISTICS NETWORK ROUTER (REAL LEAFLET MAP)       -->
+        <!-- =================================================================== -->
+        <section id="sec-mumbai" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Logistics Controls -->
+                <div class="lg:col-span-4 bg-[#121216] border border-[#262630] rounded-2xl p-5 flex flex-col justify-between space-y-5 shadow-xl">
+                    <div class="space-y-4">
+                        <div class="border-b border-[#262630] pb-3">
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-route text-yellow-400"></i> Mumbai Supply Chain Router
+                            </h2>
+                            <p class="text-xs text-gray-400">Dynamic ACO Rerouting vs. Static Shortest Path</p>
+                        </div>
+
+                        <!-- Origin / Destination Selectors -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Origin Hub (or click marker on map):</label>
+                                <select id="mumbai-origin" onchange="recalculateMumbaiRoute()" class="w-full bg-[#1a1a22] border border-[#2e2e3d] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Destination Hub (or click marker on map):</label>
+                                <select id="mumbai-destination" onchange="recalculateMumbaiRoute()" class="w-full bg-[#1a1a22] border border-[#2e2e3d] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400"></select>
+                            </div>
+                        </div>
+
+                        <!-- Traffic Instruction Box -->
+                        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200 space-y-1">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Interactive Live Traffic Jam:
+                            </div>
+                            <p class="text-[11px] text-gray-300 leading-relaxed">
+                                Click directly on any <strong>highway line</strong> on the Mumbai map to inject heavy traffic congestion (turns red). Watch ACO automatically reroute around the jam!
+                            </p>
+                            <button onclick="clearMumbaiTraffic()" class="mt-2 w-full py-1.5 rounded-lg bg-[#1a1a22] hover:bg-[#252532] text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition">
+                                <i class="fa-solid fa-road-circle-check mr-1"></i> Clear All Traffic Jams
+                            </button>
+                        </div>
+
+                        <!-- Telemetry Comparison Cards -->
+                        <div class="grid grid-cols-3 gap-2 pt-1">
+                            <div class="bg-[#0b0b0e] border border-[#22222c] p-3 rounded-xl text-center">
+                                <div class="text-[10px] text-gray-400">ACO Smart ETA</div>
+                                <div id="mumbai-aco-time" class="text-base font-bold text-yellow-400 font-mono mt-0.5">--</div>
+                            </div>
+                            <div class="bg-[#0b0b0e] border border-[#22222c] p-3 rounded-xl text-center">
+                                <div class="text-[10px] text-gray-400">Static GPS ETA</div>
+                                <div id="mumbai-static-time" class="text-base font-bold text-gray-400 font-mono mt-0.5">--</div>
+                            </div>
+                            <div class="bg-[#0b0b0e] border border-[#22222c] p-3 rounded-xl text-center">
+                                <div class="text-[10px] text-gray-400">Time Saved</div>
+                                <div id="mumbai-efficiency" class="text-base font-bold text-emerald-400 font-mono mt-0.5">0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button id="btn-start-mumbai" onclick="toggleMumbaiSim()" class="w-full py-2.5 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-sm shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-truck-fast"></i> Run ACO Logistics Router
                         </button>
                     </div>
                 </div>
 
-                <!-- Mumbai Map Network Visualizer -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">Greater Mumbai Geographic Transit Network Graph</h3>
-                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono">9 Transit Nodes</span>
-                        </div>
-                        <div class="flex gap-3 text-xs">
-                        <span class="flex items-center gap-1 text-emerald-400"><i class="fa-solid fa-circle text-[8px]"></i> Normal</span>
-                        <span class="flex items-center gap-1 text-red-500"><i class="fa-solid fa-circle text-[8px]"></i> Congested Edge</span>
+                <!-- Right Real Leaflet Map of Mumbai -->
+                <div class="lg:col-span-8 bg-[#121216] border border-[#262630] rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-yellow-400"></i> Live Mumbai Metropolitan Logistics Corridor
+                        </h3>
+                        <span class="text-xs text-gray-400">Click any Hub Marker to set Origin/Destination • Click Road Lines to toggle Traffic</span>
                     </div>
-                </div>
 
-                <!-- Leaflet Map Container -->
-                <div class="relative w-full h-[480px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
-                    <div id="map-mumbai" class="w-full h-full z-10"></div>
-                </div>
+                    <div id="map-mumbai" class="w-full h-[500px] rounded-xl overflow-hidden border border-[#22222c] z-10"></div>
 
-                <!-- Legend & Route Description -->
-                <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
-                    <div id="mumbai-route-text" class="text-yellow-400 font-mono text-[11px] truncate max-w-lg">
-                            Route: Select Origin and Destination above to calculate path...
-                        </div>
-                        <div class="text-[11px] text-gray-500">
-                            Yellow particles = Delivery Logistics Vehicles
-                        </div>
+                    <div class="flex flex-wrap justify-between items-center text-xs px-1 gap-2">
+                        <span id="mumbai-route-text" class="text-yellow-400 font-mono font-semibold">Optimal ACO Route: --</span>
+                        <span class="text-gray-400">Gold Highlight = Active ACO Corridor • Red Line = Congested Highway</span>
                     </div>
                 </div>
             </div>
         </section>
+
     </main>
-
-    <!-- FOOTER -->
-    <footer class="border-t border-[#1c1c28] bg-[#08080b] py-3 px-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <div>
-            <span class="text-gray-400 font-medium">BTech Project:</span> Bio-Inspired Intelligent Algorithms &mdash; Ant Colony Optimization (Vidhi C403, Amrit C405, Rushi C429, Naishi C430)
-        </div>
-        <div class="text-gray-600 font-mono text-[11px]">
-            Model Equations: \( P_{ij} \propto \tau_{ij}^\alpha \eta_{ij}^\beta \)
-        </div>
-    </footer>
-
 
     <!-- =================================================================== -->
     <!-- JAVASCRIPT SIMULATION ENGINE                                        -->
@@ -1223,7 +1169,7 @@
             mumbaiNodes = [
                 { id: 0, name: 'CST / Fort', lat: 18.9400, lng: 72.8350 },
                 { id: 1, name: 'Dadar', lat: 19.0180, lng: 72.8430 },
-                { id: 2, name: 'Bandra', lat: 19.0550, lng: 72.8300 },
+                { id: 2, name: 'Bandra (WEH)', lat: 19.0530, lng: 72.8410 }, // Shifted East to strictly follow the land highway (Mahim Causeway)
                 { id: 3, name: 'BKC Hub', lat: 19.0660, lng: 72.8650 },
                 { id: 4, name: 'Andheri', lat: 19.1190, lng: 72.8460 },
                 { id: 5, name: 'Mumbai Airport (BOM)', lat: 19.0900, lng: 72.8630 },
@@ -1234,7 +1180,7 @@
 
             mumbaiEdges = [
                 { from: 0, to: 1, name: 'Eastern Highway South', baseWeight: 18, weight: 18, congested: false },
-                { from: 1, to: 2, name: 'Dadar West Arterial', baseWeight: 12, weight: 12, congested: false },
+                { from: 1, to: 2, name: 'Mahim Causeway / WEH', baseWeight: 12, weight: 12, congested: false }, // Renamed to reflect the land route
                 { from: 1, to: 3, name: 'BKC Connector', baseWeight: 10, weight: 10, congested: false },
                 { from: 2, to: 3, name: 'Bandra-BKC Link', baseWeight: 8, weight: 8, congested: false },
                 { from: 2, to: 4, name: 'Western Express Hwy (WEH)', baseWeight: 22, weight: 22, congested: false },
