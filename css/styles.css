@@ -462,5 +462,5 @@ kbd { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 5px; border: 
 .rank-row.st-row-malicious { border-color: rgba(244, 63, 94, 0.55); background: rgba(244, 63, 94, 0.08); }
 .rank-row.st-row-malicious .tr span { background: linear-gradient(90deg, var(--gold), var(--malicious)); }
 .legend .rank-dot { width: 18px; height: 18px; display: inline-grid; place-items: center; background: var(--gold); color: #111; font: 700 8.5px var(--font); }
-/* hide hairline seams between filtered tiles */
-#map.dark-tiles .leaflet-tile-container img.leaflet-tile { width: 256.6px !important; height: 256.6px !important; }
+/* hide hairline seams between tiles on fractional/hi-DPI scaling (known Leaflet issue) */
+.leaflet-container img.leaflet-tile { mix-blend-mode: plus-lighter; }
