@@ -112,6 +112,7 @@ check('MAP: road data loads (or a readable error is shown)', dataOk || await pag
 if (dataOk) {
   await page.waitForFunction(() => window.biopro.map.state.dij, null, { timeout: 20000 });
   check('MAP: Dijkstra reference computed', /\d/.test(await txt('#map-dij')));
+  check('MAP: "Why compare with Dijkstra?" explanation visible', await page.locator('.why-dij').isVisible() && (await txt('.why-dij')).includes('exact best route'));
   const tileUrl = await page.evaluate(() => window.biopro.map.state.tiles?._url || '');
   check('MAP: basemap uses keyless OpenStreetMap tiles (no CARTO "API key required" watermark)', /tile\.openstreetmap\.org/.test(tileUrl) && !/cartocdn/.test(tileUrl), tileUrl);
   await page.click('#map-step');

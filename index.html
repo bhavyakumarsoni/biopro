@@ -436,6 +436,24 @@
             </div>
           </div>
 
+          <div class="card why-dij">
+            <div class="card-head"><h3><i data-icon="info"></i>Why compare with Dijkstra?</h3><span class="card-sub">the referee for ACO's answer</span></div>
+            <div class="why-grid">
+              <div>
+                <h4>What Dijkstra is</h4>
+                <p>The classic shortest-path algorithm (E. W. Dijkstra, 1959). It grows outward from the origin, always settling the closest unsettled junction first. On a road graph with <b>non-negative costs it is guaranteed to find the exact best route</b>, in a fraction of a second (O(E log V)).</p>
+              </div>
+              <div>
+                <h4>Why we use it here</h4>
+                <p>ACO is a <b>heuristic</b>: it usually finds very good routes but cannot prove they are the best. Dijkstra gives the true optimum on the <b>same graph with the same costs</b>, so we can measure ACO honestly: does it match the optimum, and if not, by how much (the % gap)?</p>
+              </div>
+              <div>
+                <h4>So why ACO at all?</h4>
+                <p>For one fixed shortest path, Dijkstra is the better tool. ACO earns its place when the problem changes or grows: it <b>adapts as traffic changes</b> through pheromone memory, works <b>decentralised</b> (like packet routing), and handles problems Dijkstra cannot solve exactly, such as the multi-stop tours in the ACO Lab or delivery routes with constraints.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="split">
             <div class="card">
               <div class="card-head"><h3><i data-icon="scale"></i>ACO vs Dijkstra (same graph, same costs)</h3><span class="card-sub" id="map-obj-label"></span></div>
@@ -550,6 +568,7 @@
             <li><b>Distance objective:</b> \(c_{ij}\) = road length (m).</li>
             <li><b>Time objective:</b> \(c_{ij}\) = length / free-flow speed × congestion multiplier (s).</li>
             <li><b>Dijkstra</b> runs on the identical graph with the identical cost function; for non-negative costs it returns the exact optimum and serves as the reference. When congestion changes, both are recomputed; ACO keeps its pheromone and adapts, and its stored best route is re-priced under the new costs.</li>
+            <li><b>Why Dijkstra is the baseline:</b> single-pair shortest path with non-negative costs is solvable exactly in polynomial time, so Dijkstra provides ground truth for judging ACO (match / % gap). It is not presented as a competitor ACO should "beat": on a static single-pair problem Dijkstra is faster and exact. ACO's value lies in adaptation to changing costs, decentralised operation (e.g. AntNet packet routing) and NP-hard variants (TSP, vehicle routing) where no exact polynomial method exists.</li>
           </ul>
 
           <h3 id="m-data">5. Datasets</h3>

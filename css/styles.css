@@ -464,3 +464,12 @@ kbd { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 5px; border: 
 .legend .rank-dot { width: 18px; height: 18px; display: inline-grid; place-items: center; background: var(--gold); color: #111; font: 700 8.5px var(--font); }
 /* hide hairline seams between tiles on fractional/hi-DPI scaling (known Leaflet issue) */
 .leaflet-container img.leaflet-tile { mix-blend-mode: plus-lighter; }
+
+/* ---------- Mumbai: why Dijkstra ---------- */
+.why-dij { border-left: 3px solid var(--teal); }
+.why-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 16px 18px 18px; }
+.why-grid h4 { font-size: 13.5px; color: var(--teal); margin-bottom: 6px; }
+.why-grid p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.why-grid b { color: var(--text); font-weight: 600; }
+@media (max-width: 900px) { .why-grid { grid-template-columns: minmax(0, 1fr); } }
+#map:focus-visible { outline: 2px solid var(--gold-line); outline-offset: -2px; }

@@ -103,7 +103,7 @@ export const SLIDES = [
       'Major roads of Mumbai from OpenStreetMap: 7,657 junctions, 10,087 road segments.',
       'Objective: shortest distance or lowest estimated travel time (free-flow speeds).',
       'Simulated congestion (e.g. on the Sea Link) changes costs; ants adapt through evaporation.',
-      'Dijkstra on the same graph and costs gives the exact optimum to compare against.',
+      'Why Dijkstra? It is the classic exact shortest-path algorithm (1959): on the same graph and costs it gives the true optimum, so it is the referee that tells us how close ACO gets.',
     ],
     takeaway: 'ACO often matches the optimum, but it is stochastic: the lab reports the gap honestly when it does not.',
     stats: [['7,657', 'OSM junctions'], ['2', 'objectives: km / min'], ['Exact', 'Dijkstra reference']],
