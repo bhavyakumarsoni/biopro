@@ -1,1626 +1,654 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ant Colony Optimization - BTech Research Model</title>
-    <!-- Tailwind CSS for modern layout utilities -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for sleek UI icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for real-time convergence analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- MathJax for high-quality mathematical LaTeX rendering -->
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-    <!-- Leaflet CSS & JS for Real Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap');
-
-        :root {
-            --bg-dark: #0a0a0c;
-            --card-bg: #121216;
-            --border-color: #262630;
-            --gold-primary: #ffd700;
-            --gold-secondary: #ffb700;
-            --gold-glow: rgba(255, 215, 0, 0.25);
-            --text-main: #f0f0f5;
-            --text-muted: #8e8e9f;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-        }
-
-        .font-mono-code {
-            font-family: 'Fira Code', monospace;
-        }
-
-        /* Gold glow custom animations and utilities */
-        .gold-border {
-            border: 1px solid rgba(255, 215, 0, 0.25);
-        }
-
-        .gold-border-glow {
-            border: 1px solid var(--gold-primary);
-            box-shadow: 0 0 15px var(--gold-glow);
-        }
-
-        .gold-text-glow {
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0d0d11;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2a2a35;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--gold-secondary);
-        }
-
-        /* Range Slider Styling */
-        input[type=range] {
-            -webkit-appearance: none;
-            background: #1e1e26;
-            border-radius: 4px;
-            height: 6px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: var(--gold-primary);
-            cursor: pointer;
-            box-shadow: 0 0 8px var(--gold-primary);
-        }
-
-        .nav-tab.active {
-            background-color: var(--gold-primary);
-            color: #000000;
-            font-weight: 700;
-            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
-        }
-
-        canvas {
-            touch-action: none;
-        }
-
-        .dark-map-tiles {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ant Colony Optimization — BTech Research Simulator</title>
+  <meta name="description" content="Interactive Ant Colony Optimization research simulator: TSP lab, ACO-inspired antivirus prioritisation, and Mumbai road routing compared against Dijkstra.">
+  <meta name="theme-color" content="#09090b">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ffd23f'/%3E%3Ccircle cx='16' cy='11' r='4' fill='%23111'/%3E%3Cellipse cx='16' cy='21' rx='5' ry='6' fill='%23111'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Libraries are vendored (no CDN needed during a live demo) -->
+  <script src="vendor/leaflet/leaflet.js" defer></script>
+  <script src="vendor/chart.umd.min.js" defer></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+      svg: { fontCache: 'global' },
+      startup: { typeset: true },
+    };
+  </script>
+  <script src="vendor/mathjax/tex-svg.js" defer id="MathJax-script"></script>
+  <script type="module" src="js/ui/app.js"></script>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body>
+  <a class="sr-only" href="#main">Skip to content</a>
 
-    <!-- TOP NAVIGATION HEADER -->
-    <header class="border-b border-[#22222d] bg-[#0c0c10]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-            <!-- TOP LEFT CORNER PPT PDF BUTTON -->
-            <a href="ANT COLONY OPTIMIZATION.pdf" target="_blank" rel="noopener" id="btn-ppt-pdf" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-yellow-400 text-white font-bold text-xs shadow-lg shadow-red-600/20 border border-yellow-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer" title="Open Presentation PDF in a New Tab">
-                <i class="fa-solid fa-file-pdf text-sm"></i>
-                <span class="hidden xl:inline">View PPT (PDF)</span>
-            </a>
-            
-            <!-- NEW CANVA PPT BUTTON -->
-            <a href="https://canva.link/7v0uxofhx3nhwkw" target="_blank" rel="noopener" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-500 hover:from-blue-500 hover:to-purple-400 text-white font-bold text-xs shadow-lg shadow-blue-600/20 border border-purple-400/40 flex items-center gap-2 transition-all duration-200 transform hover:scale-105 cursor-pointer" title="Open Presentation in Canva">
-                <i class="fa-solid fa-desktop text-sm"></i>
-                <span class="hidden xl:inline">View PPT in Canva</span>
-            </a>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6.2" r="2.6"/><ellipse cx="12" cy="11.6" rx="2.4" ry="2.6"/><ellipse cx="12" cy="18" rx="3.3" ry="3.9"/><path d="M9.8 10.4 5 8M14.2 10.4 19 8M9.6 12.6H4.5M14.4 12.6h5.1M9.8 15 5.5 18.5M14.2 15l4.3 3.5M10.6 4 8.5 1.5M13.4 4l2.1-2.5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <h1>ANT COLONY OPTIMIZATION</h1>
+        <p>BTech Bio-Inspired Intelligent Algorithms · Research simulator</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Labs">
+      <button class="tab" role="tab" id="tab-aco" aria-controls="view-aco" aria-selected="true" data-view="aco"><i data-icon="flask"></i><span>ACO Lab</span></button>
+      <button class="tab" role="tab" id="tab-av" aria-controls="view-av" aria-selected="false" data-view="av"><i data-icon="shield"></i><span>Antivirus Lab</span></button>
+      <button class="tab" role="tab" id="tab-map" aria-controls="view-map" aria-selected="false" data-view="map"><i data-icon="map"></i><span>Mumbai Routing Lab</span></button>
+      <button class="tab" role="tab" id="tab-method" aria-controls="view-method" aria-selected="false" data-view="method"><i data-icon="book"></i><span>Methodology</span></button>
+    </nav>
+    <div class="top-actions">
+      <button class="btn primary" id="demo-open" title="Guided demonstration for presenting"><i data-icon="presenter"></i><span>Guided demo</span></button>
+      <a class="btn" href="ANT%20COLONY%20OPTIMIZATION.pdf" target="_blank" rel="noopener" title="Open the presentation PDF"><i data-icon="file"></i><span>PPT (PDF)</span></a>
+      <a class="btn" href="https://canva.link/7v0uxofhx3nhwkw" target="_blank" rel="noopener" title="Open the presentation in Canva"><i data-icon="slides"></i><span>Canva</span></a>
+    </div>
+  </header>
 
-            <div class="h-6 w-[1px] bg-[#282835] hidden sm:block"></div>
-
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-extrabold text-xl shadow-lg shadow-yellow-500/20">
-                <i class="fa-solid fa-bug"></i>
-            </div>
-            <div>
-                <h1 class="text-lg lg:text-xl font-bold tracking-wide text-white flex items-center gap-2">
-                    ANT COLONY OPTIMIZATION <span class="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-mono">BTech Bio-AI Model</span>
-                </h1>
-                <p class="text-xs text-gray-400">Swarm Intelligence Simulation &amp; Real-world Industrial Applications</p>
-            </div>
-        </div>
-
-        <!-- TAB NAVIGATION -->
-        <nav class="flex items-center bg-[#15151c] p-1 rounded-xl border border-[#282835] gap-1 text-sm font-medium">
-            <button onclick="switchTab('science')" id="tab-science" class="nav-tab active px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
-                <i class="fa-solid fa-flask"></i> <span class="hidden sm:inline">1. ACO Science &amp; Core</span>
-            </button>
-            <button onclick="switchTab('antivirus')" id="tab-antivirus" class="nav-tab px-4 py-2 rounded-lg text-gray-400 hover:text-yellow-400 transition-all duration-200 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved"></i> <span class="hidden sm:inline">2. Antivirus Scan</span>
-            </button>
-            <button onclick="switchTab('mumbai')" id="tab-mumbai" class="nav-tab px-4 py-2 rounded-lg text-gray-400 hover:text-yellow-400 transition-all duration-200 flex items-center gap-2">
-                <i class="fa-solid fa-map-location-dot"></i> <span class="hidden sm:inline">3. Mumbai Logistics Router</span>
-            </button>
-        </nav>
-    </header>
-
-    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 space-y-6">
-
-        <!-- =================================================================== -->
-        <!-- SECTION 1: CORE ACO SCIENCE & TSP FORAGING SIMULATOR               -->
-        <!-- =================================================================== -->
-        <section id="sec-science" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- CONTROLS & PARAMS PANEL -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-sliders text-yellow-400"></i> Hyperparameter Controls
-                            </h2>
-                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">TSP Graph</span>
-                        </div>
-
-                        <div class="space-y-4">
-                            <!-- Alpha Control -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Pheromone Importance (&alpha;)</span>
-                                    <span id="val-alpha" class="text-yellow-400 font-mono">1.0</span>
-                                </div>
-                                <input type="range" id="param-alpha" min="0" max="5" step="0.1" value="1.0" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values give greater weight to existing pheromone trails (Exploitation).</p>
-                            </div>
-
-                            <!-- Beta Control -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Heuristic/Distance Weight (&beta;)</span>
-                                    <span id="val-beta" class="text-yellow-400 font-mono">2.5</span>
-                                </div>
-                                <input type="range" id="param-beta" min="0" max="8" step="0.1" value="2.5" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Higher values prefer shorter distances between nodes (Exploration heuristic).</p>
-                            </div>
-
-                            <!-- Evaporation Rate Control -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Evaporation Rate (&rho;)</span>
-                                    <span id="val-rho" class="text-yellow-400 font-mono">0.05</span>
-                                </div>
-                                <input type="range" id="param-rho" min="0.01" max="0.3" step="0.01" value="0.05" class="w-full" oninput="updateScienceParams()">
-                                <p class="text-[11px] text-gray-500 mt-0.5">Rate at which chemical trails fade over time to prevent sub-optimal traps.</p>
-                            </div>
-
-                            <!-- Ant Count -->
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Ant Swarm Population</span>
-                                    <span id="val-ants" class="text-yellow-400 font-mono">40</span>
-                                </div>
-                                <input type="range" id="param-ants" min="5" max="150" step="5" value="40" class="w-full" oninput="updateScienceParams()">
-                            </div>
-
-                            <!-- Node Preset / Preset buttons -->
-                            <div>
-                                <label class="text-xs font-semibold text-gray-300 block mb-1">Graph Topology Presets</label>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button onclick="loadNodePreset('circle')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Circle</button>
-                                    <button onclick="loadNodePreset('random')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Random 12</button>
-                                    <button onclick="loadNodePreset('clusters')" class="px-2 py-1.5 bg-[#1a1a24] hover:bg-[#252533] border border-[#2e2e3e] text-xs rounded text-gray-300">Clusters</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CONTROL BUTTONS -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="btn-start-science" onclick="toggleScienceSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
-                                <i class="fa-solid fa-play"></i> Start Swarm
-                            </button>
-                            <button onclick="resetScienceSim()" class="w-full py-2.5 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold rounded-xl border border-[#2f2f40] transition flex items-center justify-center gap-2 text-sm">
-                                <i class="fa-solid fa-rotate-right"></i> Reset
-                            </button>
-                        </div>
-                        <p class="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-mouse"></i> Click canvas to manually insert target nodes
-                        </p>
-                    </div>
-                </div>
-
-                <!-- CANVAS VISUALIZER -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">Foraging Space &amp; Pheromone Topology</h3>
-                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono" id="status-science">Idle</span>
-                        </div>
-                        <div class="flex gap-4 text-xs font-mono">
-                            <div><span class="text-gray-400">Nodes:</span> <span id="stat-nodes" class="text-yellow-400 font-bold">12</span></div>
-                            <div><span class="text-gray-400">Iterations:</span> <span id="stat-iter" class="text-yellow-400 font-bold">0</span></div>
-                            <div><span class="text-gray-400">Best Distance:</span> <span id="stat-dist" class="text-yellow-400 font-bold">--</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Canvas container with absolute dynamic sizing -->
-                    <div class="relative w-full h-[480px] bg-[#08080a] rounded-xl overflow-hidden border border-[#1e1e28] flex items-center justify-center">
-                        <canvas id="canvas-science" class="w-full h-full cursor-crosshair"></canvas>
-                    </div>
-
-                    <!-- Pheromone Intensity Legend -->
-                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
-                        <div class="flex items-center gap-2">
-                            <span>Low Pheromone</span>
-                            <div class="w-24 h-2 rounded-full bg-gradient-to-r from-[#222210] via-yellow-600 to-yellow-400"></div>
-                            <span class="text-yellow-400 font-semibold">High Intensity (\(\tau\))</span>
-                        </div>
-                        <div class="text-[11px] text-gray-500">
-                            Gold glowing lines = Consolidated short path
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MATH & THEORY DETAILED BREAKDOWN SECTION -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Mathematical Formula Breakdown -->
-                <div class="lg:col-span-7 bg-[#121216] border border-[#22222e] rounded-2xl p-6 space-y-4">
-                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-square-root-variable"></i> ACO Mathematical Working Principle
-                    </h3>
-                    
-                    <div class="bg-[#0a0a0e] p-4 rounded-xl border border-[#222230] text-center overflow-x-auto">
-                        <p class="text-xs text-gray-400 mb-2">State Transition Rule (Probabilistic Choice of Ant \(k\) from node \(i\) to \(j\)):</p>
-                        <div class="text-lg text-yellow-300 font-mono py-1">
-                            $$P_{ij}^k = \frac{(\tau_{ij})^\alpha \cdot (\eta_{ij})^\beta}{\sum_{l \in \text{allowed}_k} (\tau_{il})^\alpha \cdot (\eta_{il})^\beta}$$
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-300">
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">1. Pheromone Concentration (\(\tau_{ij}\))</span>
-                            Represents collective swarm memory. When an ant completes a tour, it deposits pheromone inversely proportional to path length \(\Delta \tau = Q / L_k\).
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">2. Heuristic Desirability (\(\eta_{ij}\))</span>
-                            Local visibility heuristic, calculated as \(\eta_{ij} = \frac{1}{d_{ij}}\) where \(d_{ij}\) is Euclidean distance or delay cost between nodes.
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">3. Evaporation Decay (\(\rho\))</span>
-                            Updated via \(\tau_{ij} \leftarrow (1-\rho)\tau_{ij}\). Evaporation eliminates poor decisions and prevents global stagnation in local optima.
-                        </div>
-                        <div class="bg-[#181820] p-3 rounded-lg border border-[#262636]">
-                            <span class="text-yellow-400 font-bold block mb-1">4. Stigmergic Communication</span>
-                            Indirect coordination through environmental modification. Ants do not talk directly; they communicate via chemical density trails.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Real-time Convergence Chart -->
-                <div class="lg:col-span-5 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between">
-                    <h3 class="text-md font-bold text-yellow-400 border-b border-[#22222e] pb-2 mb-3 flex items-center justify-between">
-                        <span><i class="fa-solid fa-chart-line"></i> Optimization Convergence</span>
-                        <span class="text-xs text-gray-400 font-normal">Best Path Cost vs Iterations</span>
-                    </h3>
-                    <div class="relative w-full h-[220px] bg-[#0a0a0e] rounded-xl p-2 border border-[#1d1d28]">
-                        <canvas id="chart-science-convergence"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- =================================================================== -->
-        <!-- SECTION 2: ANTIVIRUS SCAN & THREAT PATHING SIMULATOR               -->
-        <!-- =================================================================== -->
-        <section id="sec-antivirus" class="space-y-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left Sidebar: Settings & Threat Injection Controls -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-shield-virus"></i> Threat Detector Config
-                            </h2>
-                            <span class="text-xs bg-red-500/10 text-red-400 px-2 py-1 rounded border border-red-500/20 font-mono">AV Engine</span>
-                        </div>
-
-                        <p class="text-xs text-gray-400 mb-4">
-                            Antivirus ACO models heuristic file-system scanning. Virtual detection agents follow memory signature heuristics and leave trails where threat clusters are discovered.
-                        </p>
-
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Detection Agent Count</span>
-                                    <span id="val-av-ants" class="text-yellow-400 font-mono">25</span>
-                                </div>
-                                <input type="range" id="param-av-ants" min="5" max="60" step="5" value="25" class="w-full" oninput="document.getElementById('val-av-ants').innerText=this.value">
-                            </div>
-
-                            <div>
-                                <div class="flex justify-between text-xs font-semibold mb-1">
-                                    <span class="text-gray-300">Scan Frequency Speed</span>
-                                    <span id="val-av-speed" class="text-yellow-400 font-mono">Medium</span>
-                                </div>
-                                <input type="range" id="param-av-speed" min="1" max="3" step="1" value="2" class="w-full" oninput="updateAVSpeedLabel(this.value)">
-                            </div>
-
-                            <div class="p-3 bg-[#171720] rounded-xl border border-[#252535] space-y-3">
-                                <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Simulate Malware Attack</h4>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <button onclick="injectRandomThreat()" class="w-full px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-700/50 text-red-300 text-xs rounded-lg font-medium transition flex items-center gap-2 justify-center">
-                                        <i class="fa-solid fa-virus-slash"></i> Inject Random Threat Scenario
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- AV Control Action Buttons -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <button id="btn-start-av" onclick="toggleAVScan()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
-                            <i class="fa-solid fa-radar"></i> Initiate Heuristic Scan
-                        </button>
-                        <button onclick="resetAVScan()" class="w-full py-2 bg-[#1c1c26] hover:bg-[#262635] text-gray-300 font-semibold text-xs rounded-xl border border-[#2f2f40] transition">
-                            Clear Scan Log &amp; Re-initialize Nodes
-                        </button>
-                    </div>
-                </div>
-
-                <!-- AV File System Node Graph Visualizer -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">System Directory Node &amp; Threat Signature Topology</h3>
-                            <span id="status-av" class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono">System Clean</span>
-                        </div>
-                        <div class="flex gap-4 text-xs font-mono">
-                            <div><span class="text-gray-400">Scanned:</span> <span id="stat-av-scanned" class="text-yellow-400 font-bold">0 %</span></div>
-                            <div><span class="text-gray-400">Threats Found:</span> <span id="stat-av-threats" class="text-red-400 font-bold">0</span></div>
-                            <div><span class="text-gray-400">CPU Overhead Savings:</span> <span id="stat-av-cpu" class="text-emerald-400 font-bold">38%</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Canvas for Antivirus Node Graph -->
-                    <div class="relative w-full h-[460px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
-                        <canvas id="canvas-antivirus" class="w-full h-full"></canvas>
-                    </div>
-
-                    <!-- Live Security Agent Terminal Log -->
-                    <div class="mt-3 bg-[#0a0a0d] border border-[#1e1e28] rounded-xl p-3 h-28 overflow-y-auto font-mono text-[11px] space-y-1" id="av-log-container">
-                        <p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- =================================================================== -->
-        <!-- SECTION 3: MUMBAI LOGISTICS & DYNAMIC NETWORK ROUTER              -->
-        <!-- =================================================================== -->
-        <section id="sec-mumbai" class="space-y-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Mumbai Logistics Settings Panel -->
-                <div class="lg:col-span-4 bg-[#121216] border border-[#22222e] rounded-2xl p-5 flex flex-col justify-between space-y-6">
-                    <div>
-                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-[#22222e]">
-                            <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                                <i class="fa-solid fa-route"></i> Mumbai Transit Hubs
-                            </h2>
-                            <span class="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20 font-mono">Real-world Map</span>
-                        </div>
-
-                        <div class="space-y-4 text-xs">
-                            <!-- Origin & Destination Selector -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-gray-300 font-semibold mb-1">Source Hub</label>
-                                    <select id="mumbai-origin" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
-                                        <!-- Dynamically Populated -->
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-gray-300 font-semibold mb-1">Destination</label>
-                                    <select id="mumbai-destination" class="w-full bg-[#181822] border border-[#2e2e40] rounded-lg p-2 text-yellow-400 font-medium focus:outline-none focus:border-yellow-400" onchange="recalculateMumbaiRoute()">
-                                        <!-- Dynamically Populated -->
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Interactive Traffic Injector Instructions -->
-                            <div class="bg-[#171722] p-3 rounded-xl border border-[#28283a] space-y-2">
-                                <span class="font-bold text-yellow-400 flex items-center gap-2 text-xs">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> Dynamic Traffic Congestion Simulator
-                                </span>
-                                <p class="text-gray-400 text-[11px]">
-                                    Click on any highway corridor (edge line) on the map to add high traffic congestion (WEH, Sea Link, EEH). ACO ants will dynamically reroute!
-                                </p>
-                                <button onclick="clearMumbaiTraffic()" class="w-full py-1.5 bg-[#222230] hover:bg-[#2c2c3e] text-gray-300 rounded border border-[#35354a] text-xs font-semibold">
-                                    Clear Traffic Congestion
-                                </button>
-                            </div>
-
-                            <!-- Route Stats comparison table -->
-                            <div class="bg-[#0a0a0d] p-3 rounded-xl border border-[#1e1e28] space-y-2">
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-400">ACO Swarm Best Path:</span>
-                                    <span id="mumbai-aco-time" class="text-yellow-400 font-bold font-mono">-- min</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-400">Static Shortest (Dijkstra):</span>
-                                    <span id="mumbai-static-time" class="text-gray-300 font-bold font-mono">-- min</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs pt-2 border-t border-[#1e1e28]">
-                                    <span class="text-emerald-400 font-semibold">Traffic Adaptation Score:</span>
-                                    <span id="mumbai-efficiency" class="text-emerald-400 font-bold font-mono">+94%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="space-y-2 pt-4 border-t border-[#22222e]">
-                        <button id="btn-start-mumbai" onclick="toggleMumbaiSim()" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-500/20 transition flex items-center justify-center gap-2 text-sm">
-                            <i class="fa-solid fa-truck-fast"></i> Run ACO Logistics Router
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Mumbai Map Network Visualizer -->
-                <div class="lg:col-span-8 bg-[#121216] border border-[#22222e] rounded-2xl p-4 flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-sm font-bold text-gray-200">Greater Mumbai Geographic Transit Network Graph</h3>
-                            <span class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20 font-mono">9 Transit Nodes</span>
-                        </div>
-                        <div class="flex gap-3 text-xs">
-                        <span class="flex items-center gap-1 text-emerald-400"><i class="fa-solid fa-circle text-[8px]"></i> Normal</span>
-                        <span class="flex items-center gap-1 text-red-500"><i class="fa-solid fa-circle text-[8px]"></i> Congested Edge</span>
-                    </div>
-                </div>
-
-                <!-- Leaflet Map Container -->
-                <div class="relative w-full h-[480px] bg-[#07070a] rounded-xl overflow-hidden border border-[#1e1e28]">
-                    <div id="map-mumbai" class="w-full h-full z-10"></div>
-                </div>
-
-                <!-- Legend & Route Description -->
-                <div class="flex justify-between items-center mt-3 pt-2 border-t border-[#1c1c26] text-xs text-gray-400">
-                    <div id="mumbai-route-text" class="text-yellow-400 font-mono text-[11px] truncate max-w-lg">
-                            Route: Select Origin and Destination above to calculate path...
-                        </div>
-                        <div class="text-[11px] text-gray-500">
-                            Yellow particles = Delivery Logistics Vehicles
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="border-t border-[#1c1c28] bg-[#08080b] py-3 px-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+  <main id="main">
+    <!-- =============================================================== -->
+    <!-- 1. ACO LAB (TSP)                                                 -->
+    <!-- =============================================================== -->
+    <section class="view active" id="view-aco" role="tabpanel" aria-labelledby="tab-aco">
+      <div class="view-head">
         <div>
-            <span class="text-gray-400 font-medium">BTech Project:</span> Bio-Inspired Intelligent Algorithms &mdash; Ant Colony Optimization (Vidhi C403, Amrit C405, Rushi C429, Naishi C430)
+          <div class="eyebrow">Lab 1 · Travelling Salesperson Problem</div>
+          <h2>Ant System on a closed tour</h2>
+          <p>Every ant builds a complete tour through <b>all</b> nodes using the probabilistic transition rule. Pheromone evaporates, then each ant deposits <span class="mono">Q/L<sub>k</sub></span> on the edges it used. Everything drawn below is read from the live algorithm state.</p>
         </div>
-        <div class="text-gray-600 font-mono text-[11px]">
-            Model Equations: \( P_{ij} \propto \tau_{ij}^\alpha \eta_{ij}^\beta \)
+      </div>
+
+      <div class="lab">
+        <aside class="card card-pad controls" aria-label="ACO controls">
+          <div class="group">
+            <div class="group-title">Run</div>
+            <div class="btn-row four">
+              <button class="btn primary" id="aco-start" title="Start / pause / resume"><i data-icon="play"></i><span>Start</span></button>
+              <button class="btn" id="aco-step" title="Run exactly one iteration"><i data-icon="step"></i><span>Step</span></button>
+              <button class="btn" id="aco-reset" title="Reset pheromone, history and best tour"><i data-icon="reset"></i><span>Reset</span></button>
+              <button class="btn icon" id="aco-dice" title="New random seed"><i data-icon="dice"></i><span class="sr-only">New random seed</span></button>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-speed">Iterations / second</label><output id="aco-speed-v"></output></div>
+              <input type="range" id="aco-speed" min="1" max="60" step="1" value="12">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-maxit">Stop after (iterations)</label><output id="aco-maxit-v"></output></div>
+              <input type="range" id="aco-maxit" min="20" max="1000" step="10" value="300">
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Hyperparameters</div>
+            <div class="field">
+              <div class="field-top"><label for="aco-alpha">Pheromone weight α</label><output id="aco-alpha-v"></output></div>
+              <input type="range" id="aco-alpha" min="0" max="5" step="0.1" value="1">
+              <p class="hint">Higher α → follow existing trails (exploitation of colony memory).</p>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-beta">Heuristic weight β</label><output id="aco-beta-v"></output></div>
+              <input type="range" id="aco-beta" min="0" max="10" step="0.1" value="3">
+              <p class="hint">Higher β → greedier preference for short edges (η = 1/d).</p>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-rho">Evaporation ρ</label><output id="aco-rho-v"></output></div>
+              <input type="range" id="aco-rho" min="0.01" max="0.9" step="0.01" value="0.1">
+              <p class="hint">Fraction of pheromone lost per iteration; forgets poor early choices.</p>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-ants">Ants per iteration m</label><output id="aco-ants-v"></output></div>
+              <input type="range" id="aco-ants" min="1" max="150" step="1" value="30">
+            </div>
+            <p class="hint">Changes apply from the next iteration without resetting τ.</p>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Graph</div>
+            <div class="seg" id="aco-preset" role="group" aria-label="Graph preset">
+              <button data-value="circle" aria-pressed="false">Circle</button>
+              <button data-value="random" aria-pressed="true">Random</button>
+              <button data-value="clusters" aria-pressed="false">Clusters</button>
+              <button data-value="grid" aria-pressed="false">Grid</button>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="aco-n">Nodes</label><output id="aco-n-v"></output></div>
+              <input type="range" id="aco-n" min="5" max="40" step="1" value="12">
+            </div>
+            <div class="field">
+              <label for="aco-seed">Random seed</label>
+              <input class="input mono" id="aco-seed" type="number" min="1" max="999999999" value="2026" inputmode="numeric">
+              <p class="hint">Same seed → same graph and same ant decisions (reproducible demo).</p>
+            </div>
+            <div class="field">
+              <span class="label">Canvas click mode</span>
+              <div class="seg" id="aco-mode" role="group" aria-label="Canvas click mode">
+                <button data-value="inspect" aria-pressed="true">Inspect</button>
+                <button data-value="add" aria-pressed="false">Add node</button>
+                <button data-value="remove" aria-pressed="false">Remove</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="lab-main">
+          <div class="card">
+            <div class="card-head">
+              <h3><i data-icon="target"></i>Foraging space &amp; pheromone topology</h3>
+              <span class="pill" id="aco-status">Idle</span>
+            </div>
+            <div class="viz tsp"><canvas id="aco-canvas" aria-label="TSP graph with pheromone trails. Use Inspect mode and click an edge for details."></canvas></div>
+            <div class="legend" aria-label="Legend">
+              <span class="sw"><span class="line" style="height:1px;opacity:.25"></span>weak τ (&lt;25 % of max)</span>
+              <span class="sw"><span class="line" style="height:3px;opacity:.6"></span>medium</span>
+              <span class="sw"><span class="line" style="height:5px;box-shadow:0 0 8px var(--gold)"></span>strong (&gt;60 %, glow)</span>
+              <span class="sw"><span class="line" style="height:2px;background:var(--teal)"></span>best-so-far tour</span>
+              <span class="sw"><span class="dot" style="background:#fff"></span>ants (last iteration)</span>
+              <span class="sw mono" id="aco-taumax"></span>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="k">Iteration</div><div class="v" id="aco-it">0</div></div>
+              <div class="stat"><div class="k">Best-so-far L*</div><div class="v gold" id="aco-best">—</div></div>
+              <div class="stat"><div class="k">Iteration best</div><div class="v" id="aco-ibest">—</div></div>
+              <div class="stat"><div class="k">Average ant tour</div><div class="v" id="aco-avg">—</div></div>
+              <div class="stat"><div class="k" id="aco-opt-k">Exact optimum (Held–Karp)</div><div class="v" id="aco-opt">—</div></div>
+              <div class="stat"><div class="k">Gap to optimum</div><div class="v" id="aco-gap">—</div></div>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="chart"></i>Convergence</h3><span class="card-sub">tour length (units) vs iteration</span></div>
+              <div class="card-body"><div class="chart-box"><canvas id="aco-chart" aria-label="Convergence chart"></canvas></div></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="cursor"></i>Edge inspector</h3><span class="card-sub" id="aco-insp-sub">click an edge (Inspect mode)</span></div>
+              <div class="card-body" id="aco-inspector"><p class="inspector-empty">Select an edge on the canvas to see its pheromone τ, distance, heuristic η, last deposit and full τ history, plus the live transition probabilities from its first node.</p></div>
+            </div>
+          </div>
+
+          <div class="split three">
+            <div class="card card-pad explain">
+              <h3 style="font-size:14px">Exploration vs exploitation</h3>
+              <p><strong>Exploitation</strong> re-uses what the colony already knows: a high α makes ants follow strong trails; a high β makes them greedily take the nearest node.</p>
+              <p><strong>Exploration</strong> keeps trying alternatives: lower α, larger ρ (faster forgetting) and the randomness of roulette-wheel selection let ants sample new edges.</p>
+              <p>Too much exploitation → <em>stagnation</em> (every ant builds the same, possibly sub-optimal tour). Too much exploration → slow or no convergence. Try α = 5, β = 0 versus α = 0, β = 5.</p>
+            </div>
+            <div class="card card-pad explain">
+              <h3 style="font-size:14px">TSP ≠ shortest path</h3>
+              <p><strong>This lab (TSP):</strong> find a closed tour that visits <em>every</em> node exactly once and returns to the start. Solution = permutation of nodes. Exact solution is NP-hard; we verify small instances with Held–Karp dynamic programming.</p>
+              <p><strong>Mumbai lab (shortest path):</strong> go from one origin to one destination; intermediate junctions are optional. Solution = simple path. Solvable exactly in polynomial time by Dijkstra, which we use as the reference.</p>
+            </div>
+            <div class="card card-pad explain">
+              <h3 style="font-size:14px">Equations used here</h3>
+              <div class="eq">$$P_{ij}^k=\frac{\tau_{ij}^{\alpha}\,\eta_{ij}^{\beta}}{\sum_{l\in N_i^k}\tau_{il}^{\alpha}\,\eta_{il}^{\beta}},\quad \eta_{ij}=\frac{1}{d_{ij}}$$</div>
+              <div class="eq">$$\tau_{ij}\leftarrow(1-\rho)\,\tau_{ij}+\sum_{k=1}^{m}\Delta\tau_{ij}^{k},\quad \Delta\tau_{ij}^{k}=\frac{Q}{L_k}$$</div>
+              <p class="hint">\(N_i^k\): unvisited nodes of ant \(k\). Initial \(\tau_0=m/C^{nn}\) (nearest-neighbour tour length), \(Q=1\). Distances are in canvas units.</p>
+            </div>
+          </div>
         </div>
-    </footer>
-
-
-    <!-- =================================================================== -->
-    <!-- JAVASCRIPT SIMULATION ENGINE                                        -->
-    <!-- =================================================================== -->
-    <script>
-        // Global Tab Management
-        let currentTab = 'science';
-
-        function switchTab(tabName) {
-            currentTab = tabName;
-            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-
-            document.getElementById('sec-science').classList.add('hidden');
-            document.getElementById('sec-antivirus').classList.add('hidden');
-            document.getElementById('sec-mumbai').classList.add('hidden');
-
-            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
-
-            // Trigger canvas resizing and initial draws
-            if (tabName === 'science') initScienceCanvas();
-            if (tabName === 'antivirus') initAVCanvas();
-            if (tabName === 'mumbai') initMumbaiMap();
-        }
-
-        // ===================================================================
-        // MODULE 1: SCIENCE & TSP CORE ACO LOGIC
-        // ===================================================================
-        let scienceCanvas, scienceCtx;
-        let scienceRunning = false;
-        let scienceNodes = [];
-        let pheromones = [];
-        let scienceAnts = [];
-        let scienceParams = { alpha: 1.0, beta: 2.5, rho: 0.05, count: 40 };
-        let scienceIteration = 0;
-        let bestDistance = Infinity;
-        let bestTour = [];
-        let scienceChart = null;
-        let scienceHistory = [];
-
-        function initScienceCanvas() {
-            scienceCanvas = document.getElementById('canvas-science');
-            scienceCtx = scienceCanvas.getContext('2d');
-            resizeCanvas(scienceCanvas);
-
-            if (scienceNodes.length === 0) {
-                loadNodePreset('random');
-            } else {
-                drawScienceFrame();
-            }
-
-            scienceCanvas.onclick = (e) => {
-                const rect = scienceCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                scienceNodes.push({ x, y });
-                resetSciencePheromones();
-                drawScienceFrame();
-            };
-
-            initScienceChart();
-        }
-
-        function resizeCanvas(canvas) {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-
-        function loadNodePreset(type) {
-            const w = scienceCanvas ? scienceCanvas.width : 700;
-            const h = scienceCanvas ? scienceCanvas.height : 450;
-            const padding = 60;
-            scienceNodes = [];
-
-            if (type === 'circle') {
-                const cx = w / 2, cy = h / 2;
-                const radius = Math.min(w, h) / 2.6;
-                const count = 12;
-                for (let i = 0; i < count; i++) {
-                    const angle = (i / count) * Math.PI * 2;
-                    scienceNodes.push({ x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
-                }
-            } else if (type === 'clusters') {
-                const centers = [{ x: w * 0.25, y: h * 0.3 }, { x: w * 0.75, y: h * 0.3 }, { x: w * 0.5, y: h * 0.75 }];
-                centers.forEach(c => {
-                    for (let i = 0; i < 4; i++) {
-                        scienceNodes.push({
-                            x: c.x + (Math.random() - 0.5) * 120,
-                            y: c.y + (Math.random() - 0.5) * 120
-                        });
-                    }
-                });
-            } else { // Random 12
-                for (let i = 0; i < 12; i++) {
-                    scienceNodes.push({
-                        x: padding + Math.random() * (w - padding * 2),
-                        y: padding + Math.random() * (h - padding * 2)
-                    });
-                }
-            }
-
-            resetScienceSim();
-        }
-
-        function resetSciencePheromones() {
-            const n = scienceNodes.length;
-            pheromones = Array(n).fill(0).map(() => Array(n).fill(0.1));
-            bestDistance = Infinity;
-            bestTour = [];
-            scienceIteration = 0;
-            scienceHistory = [];
-            if (scienceChart) {
-                scienceChart.data.labels = [];
-                scienceChart.data.datasets[0].data = [];
-                scienceChart.update();
-            }
-        }
-
-        function updateScienceParams() {
-            scienceParams.alpha = parseFloat(document.getElementById('param-alpha').value);
-            scienceParams.beta = parseFloat(document.getElementById('param-beta').value);
-            scienceParams.rho = parseFloat(document.getElementById('param-rho').value);
-            scienceParams.count = parseInt(document.getElementById('param-ants').value);
-
-            document.getElementById('val-alpha').innerText = scienceParams.alpha.toFixed(1);
-            document.getElementById('val-beta').innerText = scienceParams.beta.toFixed(1);
-            document.getElementById('val-rho').innerText = scienceParams.rho.toFixed(2);
-            document.getElementById('val-ants').innerText = scienceParams.count;
-        }
-
-        function toggleScienceSim() {
-            scienceRunning = !scienceRunning;
-            const btn = document.getElementById('btn-start-science');
-            const status = document.getElementById('status-science');
-
-            if (scienceRunning) {
-                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Swarm`;
-                btn.classList.replace('bg-yellow-400', 'bg-amber-500');
-                status.innerText = "Running Optimization...";
-                status.className = "text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full border border-yellow-500/30 font-mono";
-                runScienceStep();
-            } else {
-                btn.innerHTML = `<i class="fa-solid fa-play"></i> Resume Swarm`;
-                btn.classList.replace('bg-amber-500', 'bg-yellow-400');
-                status.innerText = "Paused";
-                status.className = "text-xs px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30 font-mono";
-            }
-        }
-
-        function resetScienceSim() {
-            scienceRunning = false;
-            const btn = document.getElementById('btn-start-science');
-            btn.innerHTML = `<i class="fa-solid fa-play"></i> Start Swarm`;
-            btn.classList.replace('bg-amber-500', 'bg-yellow-400');
-            document.getElementById('status-science').innerText = "Idle";
-            resetSciencePheromones();
-            drawScienceFrame();
-            document.getElementById('stat-nodes').innerText = scienceNodes.length;
-            document.getElementById('stat-iter').innerText = "0";
-            document.getElementById('stat-dist').innerText = "--";
-        }
-
-        function runScienceStep() {
-            if (!scienceRunning) return;
-
-            const n = scienceNodes.length;
-            if (n < 2) return;
-
-            // Generate ants and construct paths probabilistically
-            let iterBestDist = Infinity;
-            let iterBestTour = [];
-
-            for (let ant = 0; ant < scienceParams.count; ant++) {
-                let unvisited = Array.from({ length: n }, (_, i) => i);
-                let startNode = Math.floor(Math.random() * n);
-                let tour = [startNode];
-                unvisited.splice(startNode, 1);
-
-                while (unvisited.length > 0) {
-                    let curr = tour[tour.length - 1];
-                    let probs = [];
-                    let sumProbs = 0;
-
-                    for (let next of unvisited) {
-                        let dist = euclideanDist(scienceNodes[curr], scienceNodes[next]);
-                        let tau = Math.pow(pheromones[curr][next], scienceParams.alpha);
-                        let eta = Math.pow(1.0 / (dist + 0.001), scienceParams.beta);
-                        let prob = tau * eta;
-                        probs.push({ node: next, prob: prob });
-                        sumProbs += prob;
-                    }
-
-                    // Roulette Wheel Selection
-                    let rand = Math.random() * sumProbs;
-                    let accum = 0;
-                    let chosen = unvisited[0];
-
-                    for (let p of probs) {
-                        accum += p.prob;
-                        if (rand <= accum) {
-                            chosen = p.node;
-                            break;
-                        }
-                    }
-
-                    tour.push(chosen);
-                    unvisited.splice(unvisited.indexOf(chosen), 1);
-                }
-
-                // Calculate Tour Length
-                let dist = calculateTourLength(tour, scienceNodes);
-                if (dist < iterBestDist) {
-                    iterBestDist = dist;
-                    iterBestTour = tour;
-                }
-                if (dist < bestDistance) {
-                    bestDistance = dist;
-                    bestTour = tour;
-                }
-            }
-
-            // Pheromone Evaporation
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) {
-                    pheromones[i][j] *= (1 - scienceParams.rho);
-                    if (pheromones[i][j] < 0.01) pheromones[i][j] = 0.01;
-                }
-            }
-
-            // Pheromone Deposit by Iteration Best Tour
-            let depositAmount = 100 / iterBestDist;
-            for (let k = 0; k < iterBestTour.length; k++) {
-                let u = iterBestTour[k];
-                let v = iterBestTour[(k + 1) % iterBestTour.length];
-                pheromones[u][v] += depositAmount;
-                pheromones[v][u] += depositAmount;
-            }
-
-            scienceIteration++;
-            document.getElementById('stat-iter').innerText = scienceIteration;
-            document.getElementById('stat-dist').innerText = Math.round(bestDistance) + " px";
-
-            // Update Convergence Chart
-            if (scienceIteration % 2 === 0 && scienceChart) {
-                scienceChart.data.labels.push(scienceIteration);
-                scienceChart.data.datasets[0].data.push(Math.round(bestDistance));
-                if (scienceChart.data.labels.length > 30) {
-                    scienceChart.data.labels.shift();
-                    scienceChart.data.datasets[0].data.shift();
-                }
-                scienceChart.update();
-            }
-
-            drawScienceFrame();
-            setTimeout(runScienceStep, 40);
-        }
-
-        function euclideanDist(p1, p2) {
-            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        }
-
-        function calculateTourLength(tour, nodes) {
-            let len = 0;
-            for (let i = 0; i < tour.length; i++) {
-                let u = tour[i];
-                let v = tour[(i + 1) % tour.length];
-                len += euclideanDist(nodes[u], nodes[v]);
-            }
-            return len;
-        }
-
-        function drawScienceFrame() {
-            if (!scienceCtx) return;
-            const w = scienceCanvas.width;
-            const h = scienceCanvas.height;
-
-            scienceCtx.fillStyle = '#08080a';
-            scienceCtx.fillRect(0, 0, w, h);
-
-            const n = scienceNodes.length;
-
-            // Draw Pheromone Edges
-            for (let i = 0; i < n; i++) {
-                for (let j = i + 1; j < n; j++) {
-                    let p = pheromones[i][j] || 0.1;
-                    if (p > 0.05) {
-                        scienceCtx.beginPath();
-                        scienceCtx.moveTo(scienceNodes[i].x, scienceNodes[i].y);
-                        scienceCtx.lineTo(scienceNodes[j].x, scienceNodes[j].y);
-                        let alpha = Math.min(1.0, p / 3.0);
-                        let width = Math.min(6, Math.max(0.5, p / 1.5));
-
-                        scienceCtx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
-                        scienceCtx.lineWidth = width;
-                        if (p > 1.5) {
-                            scienceCtx.shadowColor = '#ffd700';
-                            scienceCtx.shadowBlur = 8;
-                        } else {
-                            scienceCtx.shadowBlur = 0;
-                        }
-                        scienceCtx.stroke();
-                        scienceCtx.shadowBlur = 0;
-                    }
-                }
-            }
-
-            // Draw Best Tour Overlay
-            if (bestTour.length > 0) {
-                scienceCtx.beginPath();
-                for (let i = 0; i < bestTour.length; i++) {
-                    let u = bestTour[i];
-                    let v = bestTour[(i + 1) % bestTour.length];
-                    if (i === 0) scienceCtx.moveTo(scienceNodes[u].x, scienceNodes[u].y);
-                    scienceCtx.lineTo(scienceNodes[v].x, scienceNodes[v].y);
-                }
-                scienceCtx.strokeStyle = '#00ffcc';
-                scienceCtx.lineWidth = 2.5;
-                scienceCtx.setLineDash([6, 6]);
-                scienceCtx.stroke();
-                scienceCtx.setLineDash([]);
-            }
-
-            // Draw Nodes
-            scienceNodes.forEach((node, idx) => {
-                scienceCtx.beginPath();
-                scienceCtx.arc(node.x, node.y, 8, 0, Math.PI * 2);
-                scienceCtx.fillStyle = '#ffd700';
-                scienceCtx.shadowColor = '#ffd700';
-                scienceCtx.shadowBlur = 10;
-                scienceCtx.fill();
-                scienceCtx.shadowBlur = 0;
-
-                scienceCtx.strokeStyle = '#000';
-                scienceCtx.lineWidth = 2;
-                scienceCtx.stroke();
-
-                scienceCtx.fillStyle = '#ffffff';
-                scienceCtx.font = '10px Fira Code';
-                scienceCtx.fillText(idx + 1, node.x - 3, node.y + 3);
-            });
-        }
-
-        function initScienceChart() {
-            if (scienceChart) return; // Prevent Chart.js re-initialization error on resize/tab switch
-            
-            const ctx = document.getElementById('chart-science-convergence').getContext('2d');
-            scienceChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Shortest Distance (px)',
-                        data: [],
-                        borderColor: '#ffd700',
-                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { grid: { color: '#1f1f2e' }, ticks: { color: '#888' } },
-                        y: { grid: { color: '#1f1f2e' }, ticks: { color: '#888' } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-
-        // ===================================================================
-        // MODULE 2: ANTIVIRUS OPTIMIZATION SIMULATION LOGIC
-        // ===================================================================
-        let avCanvas, avCtx;
-        let avRunning = false;
-        let avNodes = [];
-        let avEdges = [];
-        let avAnts = [];
-        let avThreatCount = 0;
-        let avScannedCount = 0;
-
-        function initAVCanvas() {
-            avCanvas = document.getElementById('canvas-antivirus');
-            avCtx = avCanvas.getContext('2d');
-            resizeCanvas(avCanvas);
-            buildSystemTreeGraph();
-            drawAVFrame();
-        }
-
-        function buildSystemTreeGraph() {
-            const w = avCanvas.width || 700;
-            const h = avCanvas.height || 450;
-
-            avNodes = [
-                { id: 0, label: 'Root / Kernel', x: w * 0.1, y: h * 0.5, type: 'system', threat: 0, scanned: false, alerted: false },
-                { id: 1, label: '/System32', x: w * 0.3, y: h * 0.25, type: 'system', threat: 0, scanned: false, alerted: false },
-                { id: 2, label: '/Drivers', x: w * 0.3, y: h * 0.75, type: 'system', threat: 0, scanned: false, alerted: false },
-                { id: 3, label: 'boot.dll', x: w * 0.55, y: h * 0.15, type: 'file', threat: 0, scanned: false, alerted: false },
-                { id: 4, label: 'win32k.sys', x: w * 0.55, y: h * 0.35, type: 'file', threat: 0, scanned: false, alerted: false },
-                { id: 5, label: 'network.sys', x: w * 0.55, y: h * 0.65, type: 'file', threat: 0, scanned: false, alerted: false },
-                { id: 6, label: 'RAM Buffer', x: w * 0.55, y: h * 0.85, type: 'memory', threat: 0, scanned: false, alerted: false },
-                { id: 7, label: 'User Executables', x: w * 0.8, y: h * 0.25, type: 'app', threat: 0, scanned: false, alerted: false },
-                { id: 8, label: 'Temp Downloads', x: w * 0.8, y: h * 0.75, type: 'app', threat: 0, scanned: false, alerted: false }
-            ];
-
-            avEdges = [
-                { from: 0, to: 1, pheromone: 1.0 }, { from: 0, to: 2, pheromone: 1.0 },
-                { from: 1, to: 3, pheromone: 1.0 }, { from: 1, to: 4, pheromone: 1.0 },
-                { from: 2, to: 5, pheromone: 1.0 }, { from: 2, to: 6, pheromone: 1.0 },
-                { from: 4, to: 7, pheromone: 1.0 }, { from: 6, to: 8, pheromone: 1.0 }
-            ];
-
-            avAnts = [];
-            let antCount = parseInt(document.getElementById('param-av-ants').value);
-            for (let i = 0; i < antCount; i++) {
-                avAnts.push({
-                    currNode: 0,
-                    targetNode: 0, // Starts stationary to trigger immediate selection
-                    prevNode: -1,  // Memory to prevent immediate U-turns
-                    progress: 1.0, 
-                    speed: 0.02 + Math.random() * 0.02
-                });
-            }
-        }
-
-        function updateAVSpeedLabel(val) {
-            const labels = { '1': 'Slow', '2': 'Medium', '3': 'Aggressive Turbo' };
-            document.getElementById('val-av-speed').innerText = labels[val];
-        }
-
-        function injectRandomThreat() {
-            // Reset existing threats
-            avNodes.forEach(n => { n.threat = 0; n.alerted = false; });
-            avEdges.forEach(e => e.pheromone = 1.0); // Clear old trails so they search again
-            
-            // Pick two distinct random leaf nodes (IDs 3 to 8)
-            let leaves = [3, 4, 5, 6, 7, 8];
-            leaves.sort(() => Math.random() - 0.5); // Shuffle array
-            
-            let trueThreat = leaves[0];
-            let fishyThreat = leaves[1];
-            
-            avNodes[trueThreat].threat = 0.95; // The real virus
-            avNodes[fishyThreat].threat = 0.40; // The "fishy" file
-            
-            logAVEvent(`[SYSTEM]: Random anomalies injected! Awaiting swarm deployment...`);
-            document.getElementById('status-av').innerText = "THREAT INJECTED";
-            document.getElementById('status-av').className = "text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full border border-red-500/30 font-mono";
-            drawAVFrame();
-        }
-
-        function toggleAVScan() {
-            avRunning = !avRunning;
-            const btn = document.getElementById('btn-start-av');
-            if (avRunning) {
-                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Scanner`;
-                logAVEvent('[ENGINE]: Antivirus swarm agents deployed for threat detection.');
-                runAVStep();
-            } else {
-                btn.innerHTML = `<i class="fa-solid fa-radar"></i> Resume Heuristic Scan`;
-            }
-        }
-
-        function resetAVScan() {
-            avRunning = false;
-            document.getElementById('btn-start-av').innerHTML = `<i class="fa-solid fa-radar"></i> Initiate Heuristic Scan`;
-            document.getElementById('status-av').innerText = "System Clean";
-            document.getElementById('status-av').className = "text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-mono";
-            document.getElementById('av-log-container').innerHTML = `<p class="text-gray-500">[SYSTEM]: ACO Antivirus Engine Initialized. Ready for directory cluster traversal...</p>`;
-            avScannedCount = 0;
-            avThreatCount = 0;
-            buildSystemTreeGraph();
-            drawAVFrame();
-        }
-
-        function logAVEvent(msg) {
-            const container = document.getElementById('av-log-container');
-            const p = document.createElement('p');
-            p.className = msg.includes('ALERT') ? 'text-red-400 font-bold' : (msg.includes('Found') ? 'text-yellow-300' : 'text-gray-300');
-            p.innerText = msg;
-            container.appendChild(p);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function backpropagatePheromone(nodeId, amount) {
-            const parents = { 1:0, 2:0, 3:1, 4:1, 5:2, 6:2, 7:4, 8:6 };
-            let curr = nodeId;
-            while (curr !== 0 && parents[curr] !== undefined) {
-                let p = parents[curr];
-                let edge = avEdges.find(e => (e.from === p && e.to === curr) || (e.from === curr && e.to === p));
-                if (edge) {
-                    edge.pheromone += amount;
-                }
-                curr = p;
-            }
-        }
-
-        function runAVStep() {
-            if (!avRunning) return;
-
-            let speedMultiplier = parseFloat(document.getElementById('param-av-speed').value);
-
-            avAnts.forEach(ant => {
-                ant.progress += ant.speed * speedMultiplier;
-
-                if (ant.progress >= 1.0) {
-                    // Ant has arrived at a node
-                    ant.prevNode = ant.currNode;
-                    ant.currNode = ant.targetNode;
-                    ant.progress = 0;
-
-                    let node = avNodes[ant.currNode];
-                    if (!node.scanned) {
-                        node.scanned = true;
-                        avScannedCount++;
-                    }
-
-                    // Threat detection and Stigmergic Signaling
-                    if (node.threat > 0.8) {
-                        backpropagatePheromone(ant.currNode, 10.0); // Massive signal
-                        if (!node.alerted) {
-                            logAVEvent(`[AV AGENT]: Found primary malware at '${node.label}'! Signaling swarm!`);
-                            node.alerted = true;
-                            avThreatCount++;
-                        }
-                    } else if (node.threat > 0.2) {
-                        backpropagatePheromone(ant.currNode, 2.0); // Weak signal
-                        if (!node.alerted) {
-                            logAVEvent(`[AV AGENT]: Suspicious heuristics at '${node.label}'. Investigating...`);
-                            node.alerted = true;
-                        }
-                    }
-
-                    // Pick next edge based on Pheromone Density (ACO Routing)
-                    let neighbors = avEdges.filter(e => e.from === ant.currNode || e.to === ant.currNode);
-                    
-                    // Prevent immediate U-turns to force deep file exploration
-                    let forwardNeighbors = neighbors.filter(e => {
-                        let nextNode = (e.from === ant.currNode) ? e.to : e.from;
-                        return nextNode !== ant.prevNode;
-                    });
-                    
-                    // If at a dead end (leaf node), they are forced to go back
-                    let validMoves = forwardNeighbors.length > 0 ? forwardNeighbors : neighbors;
-                    
-                    if (validMoves.length > 0) {
-                        let totalPhero = 0;
-                        validMoves.forEach(e => totalPhero += e.pheromone);
-
-                        let rand = Math.random() * totalPhero;
-                        let accum = 0;
-                        let chosenEdge = validMoves[0];
-
-                        for (let e of validMoves) {
-                            accum += e.pheromone;
-                            if (rand <= accum) {
-                                chosenEdge = e;
-                                break;
-                            }
-                        }
-
-                        ant.targetNode = (chosenEdge.from === ant.currNode) ? chosenEdge.to : chosenEdge.from;
-                    } else {
-                        ant.targetNode = 0; // Fallback failsafe
-                    }
-                }
-            });
-
-            // Evaporation logic
-            avEdges.forEach(e => {
-                e.pheromone *= 0.96; // Slow decay keeps highways visible
-                if (e.pheromone < 1.0) e.pheromone = 1.0; // Base exploration level
-            });
-
-            // Update DOM Stats
-            let totalNodes = avNodes.length;
-            let percent = Math.min(100, Math.round((avScannedCount / totalNodes) * 100));
-            document.getElementById('stat-av-scanned').innerText = percent + "%";
-            document.getElementById('stat-av-threats').innerText = avThreatCount;
-
-            drawAVFrame();
-            setTimeout(runAVStep, 30);
-        }
-
-        function drawAVFrame() {
-            if (!avCtx) return;
-            const w = avCanvas.width;
-            const h = avCanvas.height;
-
-            avCtx.fillStyle = '#07070a';
-            avCtx.fillRect(0, 0, w, h);
-
-            // Draw Edges
-            avEdges.forEach(edge => {
-                let n1 = avNodes[edge.from];
-                let n2 = avNodes[edge.to];
-                avCtx.beginPath();
-                avCtx.moveTo(n1.x, n1.y);
-                avCtx.lineTo(n2.x, n2.y);
-                
-                // Visual mapping for Pheromone trails
-                let pheroBonus = edge.pheromone - 1.0;
-                if (pheroBonus > 0.1) {
-                    avCtx.strokeStyle = `rgba(255, 215, 0, ${Math.min(1.0, 0.2 + pheroBonus / 15)})`;
-                    avCtx.lineWidth = Math.min(12, 2 + pheroBonus / 2);
-                } else {
-                    avCtx.strokeStyle = 'rgba(255, 215, 0, 0.15)'; // Faint default for unscented paths
-                    avCtx.lineWidth = 2;
-                }
-                
-                avCtx.stroke();
-            });
-
-            // Draw Nodes
-            avNodes.forEach(node => {
-                avCtx.beginPath();
-                avCtx.arc(node.x, node.y, 14, 0, Math.PI * 2);
-
-                if (node.threat > 0.5) {
-                    avCtx.fillStyle = '#ef4444';
-                    avCtx.shadowColor = '#ef4444';
-                    avCtx.shadowBlur = 15;
-                } else if (node.scanned) {
-                    avCtx.fillStyle = '#10b981';
-                    avCtx.shadowBlur = 0;
-                } else {
-                    avCtx.fillStyle = '#1e1e2d';
-                    avCtx.shadowBlur = 0;
-                }
-
-                avCtx.fill();
-                avCtx.strokeStyle = '#ffd700';
-                avCtx.lineWidth = 1.5;
-                avCtx.stroke();
-                avCtx.shadowBlur = 0;
-
-                // Label
-                avCtx.fillStyle = '#d1d1e0';
-                avCtx.font = '11px Inter';
-                avCtx.fillText(node.label, node.x - 25, node.y + 28);
-            });
-
-            // Draw Ant Agents
-            avAnts.forEach(ant => {
-                let n1 = avNodes[ant.currNode];
-                let n2 = avNodes[ant.targetNode];
-                let ax = n1.x + (n2.x - n1.x) * ant.progress;
-                let ay = n1.y + (n2.y - n1.y) * ant.progress;
-
-                avCtx.beginPath();
-                avCtx.arc(ax, ay, 4, 0, Math.PI * 2);
-                avCtx.fillStyle = '#ffd700';
-                avCtx.shadowColor = '#ffd700';
-                avCtx.shadowBlur = 6;
-                avCtx.fill();
-                avCtx.shadowBlur = 0;
-            });
-        }
-
-
-        // ===================================================================
-        // MODULE 3: MUMBAI LOGISTICS NETWORK ROUTER
-        // ===================================================================
-        let mumbaiMap;
-        let mumbaiRunning = false;
-        let mumbaiNodes = [];
-        let mumbaiEdges = [];
-        let mumbaiOriginId = 0;
-        let mumbaiDestId = 5; // Default CST to Airport
-        let mumbaiBestPath = [];
-        let mumbaiBestPathLatLngs = []; 
-        
-        // Leaflet layer groups
-        let nodeLayer, edgeLayer, pathLayer, vehicleLayer;
-        let vehicleMarker;
-        let animationFrameId;
-
-        function initMumbaiMap() {
-            if (!mumbaiMap) {
-                mumbaiMap = L.map('map-mumbai').setView([19.0760, 72.8777], 11);
-                
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-                    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-                    maxZoom: 16
-                }).addTo(mumbaiMap);
-
-                nodeLayer = L.layerGroup().addTo(mumbaiMap);
-                edgeLayer = L.layerGroup().addTo(mumbaiMap);
-                pathLayer = L.layerGroup().addTo(mumbaiMap);
-                vehicleLayer = L.layerGroup().addTo(mumbaiMap);
-
-                setupMumbaiTopology();
-                populateMumbaiDropdowns();
-            }
-
-            recalculateMumbaiRoute();
-            
-            // Re-render when container size changes
-            setTimeout(() => {
-                mumbaiMap.invalidateSize();
-            }, 200);
-        }
-
-        async function setupMumbaiTopology() {
-            // Real Lat/Lng coordinates for Mumbai Map
-            mumbaiNodes = [
-                { id: 0, name: 'CST / Fort', lat: 18.9400, lng: 72.8350 },
-                { id: 1, name: 'Dadar', lat: 19.0180, lng: 72.8430 },
-                { id: 2, name: 'Bandra', lat: 19.0550, lng: 72.8450 }, // Shifted slightly East to align with WEH/Land
-                { id: 3, name: 'BKC Hub', lat: 19.0660, lng: 72.8650 },
-                { id: 4, name: 'Andheri', lat: 19.1190, lng: 72.8460 },
-                { id: 5, name: 'Mumbai Airport (BOM)', lat: 19.0900, lng: 72.8630 },
-                { id: 6, name: 'Borivali', lat: 19.2300, lng: 72.8560 },
-                { id: 7, name: 'Thane', lat: 19.2000, lng: 72.9780 },
-                { id: 8, name: 'Navi Mumbai (Vashi)', lat: 19.0730, lng: 72.9980 }
-            ];
-
-            mumbaiEdges = [
-                { from: 0, to: 1, name: 'Eastern Highway South', baseWeight: 18, weight: 18, congested: false },
-                { from: 1, to: 2, name: 'Dadar West Arterial', baseWeight: 12, weight: 12, congested: false },
-                { from: 1, to: 3, name: 'BKC Connector', baseWeight: 10, weight: 10, congested: false },
-                { from: 2, to: 3, name: 'Bandra-BKC Link', baseWeight: 8, weight: 8, congested: false },
-                { from: 2, to: 4, name: 'Western Express Hwy (WEH)', baseWeight: 22, weight: 22, congested: false },
-                { from: 3, to: 5, name: 'SNT Cruz-Chembur Link', baseWeight: 15, weight: 15, congested: false },
-                { from: 4, to: 5, name: 'Airport Approach Road', baseWeight: 10, weight: 10, congested: false },
-                { from: 4, to: 6, name: 'WEH North Corridor', baseWeight: 25, weight: 25, congested: false },
-                { from: 5, to: 7, name: 'Ghodbunder Connectivity', baseWeight: 35, weight: 35, congested: false },
-                { from: 3, to: 8, name: 'Vashi Bridge Connector', baseWeight: 28, weight: 28, congested: false },
-                { from: 7, to: 8, name: 'Thane-Belapur Road', baseWeight: 20, weight: 20, congested: false }
-            ];
-            
-            drawMapNetwork(); // Initial straight lines while loading
-
-            // Dynamically fetch actual road routes using OSRM API for realistic routing
-            let fetchPromises = mumbaiEdges.map(async (edge) => {
-                let n1 = mumbaiNodes[edge.from];
-                let n2 = mumbaiNodes[edge.to];
-                try {
-                    let res = await fetch(`https://router.project-osrm.org/route/v1/driving/${n1.lng},${n1.lat};${n2.lng},${n2.lat}?overview=full&geometries=geojson`);
-                    let data = await res.json();
-                    if (data.routes && data.routes.length > 0) {
-                        edge.latlngs = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                    } else {
-                        edge.latlngs = [[n1.lat, n1.lng], [n2.lat, n2.lng]];
-                    }
-                } catch (e) {
-                    edge.latlngs = [[n1.lat, n1.lng], [n2.lat, n2.lng]];
-                }
-            });
-
-            await Promise.all(fetchPromises);
-            
-            // Redraw perfectly mapped real routes
-            drawMapNetwork();
-            recalculateMumbaiRoute();
-        }
-
-        function drawMapNetwork() {
-            edgeLayer.clearLayers();
-            nodeLayer.clearLayers();
-
-            // Draw Edges
-            mumbaiEdges.forEach(edge => {
-                let pts = edge.latlngs || [[mumbaiNodes[edge.from].lat, mumbaiNodes[edge.from].lng], [mumbaiNodes[edge.to].lat, mumbaiNodes[edge.to].lng]];
-                
-                let color = edge.congested ? '#ef4444' : '#3f3f5a';
-                let weight = edge.congested ? 6 : 4;
-
-                let polyline = L.polyline(pts, {
-                    color: color,
-                    weight: weight,
-                    opacity: 0.8
-                }).addTo(edgeLayer);
-
-                // Click event to toggle congestion
-                polyline.on('click', () => {
-                    edge.congested = !edge.congested;
-                    edge.weight = edge.congested ? edge.baseWeight * 3.5 : edge.baseWeight;
-                    drawMapNetwork();
-                    recalculateMumbaiRoute();
-                });
-            });
-
-            // Draw Nodes
-            mumbaiNodes.forEach(node => {
-                let isOrigin = node.id === mumbaiOriginId;
-                let isDest = node.id === mumbaiDestId;
-                
-                let color = isOrigin ? '#10b981' : (isDest ? '#f59e0b' : '#1e1e2d');
-                
-                let circle = L.circleMarker([node.lat, node.lng], {
-                    radius: 8,
-                    fillColor: color,
-                    color: '#ffd700',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 1
-                }).addTo(nodeLayer);
-
-                circle.bindTooltip(node.name, { permanent: false, direction: 'top' });
-                
-                // User interactive origin/destination setting
-                let popupContent = `
-                    <div class="text-xs font-sans text-gray-800 p-1 w-32">
-                        <strong class="block mb-2 text-center border-b pb-1 border-gray-200">${node.name}</strong>
-                        <button onclick="setMapStop(${node.id}, 'origin')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1.5 rounded mb-1.5 w-full text-center transition font-semibold">Set Origin</button>
-                        <button onclick="setMapStop(${node.id}, 'dest')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1.5 rounded w-full text-center transition font-semibold">Set Destination</button>
-                    </div>
-                `;
-                circle.bindPopup(popupContent);
-            });
-        }
-        
-        // Make function globally accessible for Leaflet popup onclick
-        window.setMapStop = function(id, type) {
-            if (type === 'origin') {
-                document.getElementById('mumbai-origin').value = id;
-            } else {
-                document.getElementById('mumbai-destination').value = id;
-            }
-            mumbaiMap.closePopup();
-            recalculateMumbaiRoute();
-        };
-
-        function populateMumbaiDropdowns() {
-            const orig = document.getElementById('mumbai-origin');
-            const dest = document.getElementById('mumbai-destination');
-            orig.innerHTML = '';
-            dest.innerHTML = '';
-
-            mumbaiNodes.forEach(node => {
-                orig.innerHTML += `<option value="${node.id}">${node.name}</option>`;
-                dest.innerHTML += `<option value="${node.id}">${node.name}</option>`;
-            });
-
-            orig.value = mumbaiOriginId.toString();
-            dest.value = mumbaiDestId.toString();
-        }
-
-        function clearMumbaiTraffic() {
-            mumbaiEdges.forEach(e => {
-                e.congested = false;
-                e.weight = e.baseWeight;
-            });
-            drawMapNetwork();
-            recalculateMumbaiRoute();
-        }
-
-        function recalculateMumbaiRoute() {
-            mumbaiOriginId = parseInt(document.getElementById('mumbai-origin').value);
-            mumbaiDestId = parseInt(document.getElementById('mumbai-destination').value);
-
-            if (mumbaiOriginId === mumbaiDestId) {
-                document.getElementById('mumbai-route-text').innerText = "Origin and Destination cannot be identical.";
-                pathLayer.clearLayers();
-                mumbaiBestPathLatLngs = [];
-                return;
-            }
-
-            // Redraw network to update colors of origin/dest nodes
-            if (nodeLayer) drawMapNetwork();
-
-            // ACO Dynamic Path calculation
-            mumbaiBestPath = solveACOShortestPath(mumbaiOriginId, mumbaiDestId);
-            let acoCost = calculatePathCost(mumbaiBestPath);
-
-            // Static Dijkstra calculation ignoring dynamic traffic
-            let staticPath = solveDijkstraStatic(mumbaiOriginId, mumbaiDestId);
-            let staticCostWithTraffic = calculatePathCost(staticPath);
-
-            document.getElementById('mumbai-aco-time').innerText = Math.round(acoCost) + " min";
-            document.getElementById('mumbai-static-time').innerText = Math.round(staticCostWithTraffic) + " min";
-            
-            // Recompute Efficiency score
-            let eff = 0;
-            if (staticCostWithTraffic > acoCost) {
-                eff = Math.round(((staticCostWithTraffic - acoCost) / staticCostWithTraffic) * 100);
-            }
-            document.getElementById('mumbai-efficiency').innerText = eff > 0 ? "+" + eff + "%" : "0%";
-
-            let pathNames = mumbaiBestPath.map(id => mumbaiNodes[id].name).join(" ➔ ");
-            document.getElementById('mumbai-route-text').innerText = "Optimal ACO Route: " + pathNames;
-
-            drawBestPath();
-            
-            // Adjust vehicle if running
-            if (mumbaiRunning && vehicleMarker) {
-                vehicleProgress = 0;
-            }
-        }
-        
-        function drawBestPath() {
-            pathLayer.clearLayers();
-            mumbaiBestPathLatLngs = [];
-
-            if (mumbaiBestPath.length > 1) {
-                for (let i = 0; i < mumbaiBestPath.length - 1; i++) {
-                    let u = mumbaiBestPath[i];
-                    let v = mumbaiBestPath[i + 1];
-                    let edge = mumbaiEdges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
-                    
-                    if (edge && edge.latlngs) {
-                        let pts = [...edge.latlngs];
-                        if (edge.from !== u) pts.reverse(); // Maintain directional continuity
-                        mumbaiBestPathLatLngs = mumbaiBestPathLatLngs.concat(pts);
-                    } else {
-                        mumbaiBestPathLatLngs.push([mumbaiNodes[u].lat, mumbaiNodes[u].lng]);
-                        if (i === mumbaiBestPath.length - 2) {
-                            mumbaiBestPathLatLngs.push([mumbaiNodes[v].lat, mumbaiNodes[v].lng]);
-                        }
-                    }
-                }
-                
-                L.polyline(mumbaiBestPathLatLngs, {
-                    color: '#ffd700',
-                    weight: 6,
-                    opacity: 0.9
-                }).addTo(pathLayer);
-            }
-        }
-
-        function solveACOShortestPath(start, target) {
-            // Simplified ACO graph search for demonstration
-            return solveDijkstraWeighted(start, target);
-        }
-
-        function solveDijkstraWeighted(start, target) {
-            let dist = {};
-            let prev = {};
-            let nodes = mumbaiNodes.map(n => n.id);
-
-            nodes.forEach(n => { dist[n] = Infinity; prev[n] = null; });
-            dist[start] = 0;
-
-            let unvisited = [...nodes];
-
-            while (unvisited.length > 0) {
-                unvisited.sort((a, b) => dist[a] - dist[b]);
-                let curr = unvisited.shift();
-
-                if (curr === target) break;
-
-                mumbaiEdges.forEach(e => {
-                    let neighbor = null;
-                    if (e.from === curr) neighbor = e.to;
-                    if (e.to === curr) neighbor = e.from;
-
-                    if (neighbor !== null && unvisited.includes(neighbor)) {
-                        let alt = dist[curr] + e.weight;
-                        if (alt < dist[neighbor]) {
-                            dist[neighbor] = alt;
-                            prev[neighbor] = curr;
-                        }
-                    }
-                });
-            }
-
-            let path = [];
-            let u = target;
-            while (u !== null) {
-                path.unshift(u);
-                u = prev[u];
-            }
-            return path;
-        }
-
-        function solveDijkstraStatic(start, target) {
-            let dist = {};
-            let prev = {};
-            let nodes = mumbaiNodes.map(n => n.id);
-
-            nodes.forEach(n => { dist[n] = Infinity; prev[n] = null; });
-            dist[start] = 0;
-
-            let unvisited = [...nodes];
-
-            while (unvisited.length > 0) {
-                unvisited.sort((a, b) => dist[a] - dist[b]);
-                let curr = unvisited.shift();
-
-                if (curr === target) break;
-
-                mumbaiEdges.forEach(e => {
-                    let neighbor = null;
-                    if (e.from === curr) neighbor = e.to;
-                    if (e.to === curr) neighbor = e.from;
-
-                    if (neighbor !== null && unvisited.includes(neighbor)) {
-                        let alt = dist[curr] + e.baseWeight; // Uses base weight only
-                        if (alt < dist[neighbor]) {
-                            dist[neighbor] = alt;
-                            prev[neighbor] = curr;
-                        }
-                    }
-                });
-            }
-
-            let path = [];
-            let u = target;
-            while (u !== null) {
-                path.unshift(u);
-                u = prev[u];
-            }
-            return path;
-        }
-
-        function calculatePathCost(path) {
-            let cost = 0;
-            for (let i = 0; i < path.length - 1; i++) {
-                let u = path[i];
-                let v = path[i + 1];
-                let edge = mumbaiEdges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
-                if (edge) cost += edge.weight;
-            }
-            return cost;
-        }
-
-        function toggleMumbaiSim() {
-            mumbaiRunning = !mumbaiRunning;
-            const btn = document.getElementById('btn-start-mumbai');
-            if (mumbaiRunning) {
-                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Route Simulation`;
-                
-                // Initialize vehicle marker if not exists
-                if (!vehicleMarker && mumbaiBestPathLatLngs.length > 0) {
-                    vehicleMarker = L.circleMarker(mumbaiBestPathLatLngs[0], {
-                        radius: 6,
-                        fillColor: '#ffffff',
-                        color: '#000',
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 1
-                    }).addTo(vehicleLayer);
-                }
-                
-                runMumbaiLoop();
-            } else {
-                btn.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Run ACO Logistics Router`;
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            }
-        }
-
-        let vehicleProgress = 0;
-        
-        function getLatLngOnPath(latlngs, progress) {
-            if (!latlngs || latlngs.length === 0) return null;
-            if (latlngs.length === 1) return latlngs[0];
-            if (progress <= 0) return latlngs[0];
-            if (progress >= 1) return latlngs[latlngs.length - 1];
-
-            let totalDist = 0;
-            let dists = [];
-            for (let i = 0; i < latlngs.length - 1; i++) {
-                let d = Math.hypot(latlngs[i+1][0]-latlngs[i][0], latlngs[i+1][1]-latlngs[i][1]);
-                dists.push(d);
-                totalDist += d;
-            }
-
-            if (totalDist === 0) return latlngs[0];
-
-            let targetDist = totalDist * progress;
-            let accum = 0;
-            for (let i = 0; i < dists.length; i++) {
-                if (accum + dists[i] >= targetDist) {
-                    let segProg = (targetDist - accum) / dists[i];
-                    let lat = latlngs[i][0] + (latlngs[i+1][0] - latlngs[i][0]) * segProg;
-                    let lng = latlngs[i][1] + (latlngs[i+1][1] - latlngs[i][1]) * segProg;
-                    return [lat, lng];
-                }
-                accum += dists[i];
-            }
-            return latlngs[latlngs.length - 1];
-        }
-
-        function runMumbaiLoop() {
-            if (!mumbaiRunning) return;
-
-            if (mumbaiBestPathLatLngs.length > 1) {
-                vehicleProgress += 0.003; // Smooth speed factor for high-resolution polyline
-                if (vehicleProgress > 1.0) vehicleProgress = 0;
-
-                let currentPos = getLatLngOnPath(mumbaiBestPathLatLngs, vehicleProgress);
-                if (currentPos && vehicleMarker) {
-                    vehicleMarker.setLatLng(currentPos);
-                }
-            }
-
-            animationFrameId = requestAnimationFrame(runMumbaiLoop);
-        }
-
-        // INITIALIZATION ON WINDOW LOAD
-        window.onload = function () {
-            initScienceCanvas();
-            // Window Resize handling
-            window.onresize = () => {
-                if (currentTab === 'science') initScienceCanvas();
-                if (currentTab === 'antivirus') initAVCanvas();
-                if (currentTab === 'mumbai') {
-                    if (mumbaiMap) mumbaiMap.invalidateSize();
-                }
-            };
-        };
-    </script>
+      </div>
+    </section>
+
+    <!-- =============================================================== -->
+    <!-- 2. ANTIVIRUS LAB                                                 -->
+    <!-- =============================================================== -->
+    <section class="view" id="view-av" role="tabpanel" aria-labelledby="tab-av">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">Lab 2 · ACO-inspired investigation scheduling</div>
+          <h2>Antivirus pheromone prioritisation</h2>
+          <p>Ants decide <b>which file to deep-scan next</b>. The scanning engine produces noisy evidence; a transparent risk model scores it; pheromone records where investigation paid off. Classification uses the risk estimate and thresholds only — never pheromone.</p>
+        </div>
+        <div class="banner warn" style="max-width:460px"><i data-icon="warn"></i><span><b>Educational simulation.</b> Synthetic files and features — not a production antivirus engine. Real malware does not emit pheromones; pheromone here is a computational priority signal.</span></div>
+      </div>
+
+      <div class="lab">
+        <aside class="card card-pad controls" aria-label="Antivirus controls">
+          <div class="group">
+            <div class="group-title">Run</div>
+            <div class="btn-row four">
+              <button class="btn primary" id="av-start"><i data-icon="play"></i><span>Scan</span></button>
+              <button class="btn" id="av-step" title="One full iteration (all 7 phases)"><i data-icon="step"></i><span>Step</span></button>
+              <button class="btn" id="av-reset" title="Reset scan state"><i data-icon="reset"></i><span>Reset</span></button>
+              <button class="btn icon" id="av-dice" title="New random scenario seed"><i data-icon="dice"></i><span class="sr-only">New random seed</span></button>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-speed">Scan speed</label><output id="av-speed-v"></output></div>
+              <input type="range" id="av-speed" min="1" max="5" step="1" value="3">
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-title">Scenario</div>
+            <div class="seg" id="av-scenario" role="group" aria-label="Scenario">
+              <button data-value="normal" aria-pressed="false">Normal</button>
+              <button data-value="suspicious" aria-pressed="false">Suspicious</button>
+              <button data-value="infected" aria-pressed="true">Infected</button>
+            </div>
+            <div class="field">
+              <label for="av-seed">Scenario seed</label>
+              <input class="input mono" id="av-seed" type="number" min="1" max="999999999" value="42" inputmode="numeric">
+            </div>
+            <button class="btn danger" id="av-inject"><i data-icon="bug"></i><span>Inject simulated malware</span></button>
+          </div>
+          <div class="group">
+            <div class="group-title">Colony</div>
+            <div class="field">
+              <div class="field-top"><label for="av-ants">Ants per iteration</label><output id="av-ants-v"></output></div>
+              <input type="range" id="av-ants" min="1" max="30" step="1" value="8">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-rho">Evaporation ρ</label><output id="av-rho-v"></output></div>
+              <input type="range" id="av-rho" min="0.01" max="0.5" step="0.01" value="0.05">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-alpha">Pheromone weight α</label><output id="av-alpha-v"></output></div>
+              <input type="range" id="av-alpha" min="0" max="4" step="0.1" value="1">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-beta">Triage weight β</label><output id="av-beta-v"></output></div>
+              <input type="range" id="av-beta" min="0" max="4" step="0.1" value="2">
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-title">Detector decision rules</div>
+            <div class="field">
+              <div class="field-top"><label for="av-thr-s">Suspicious threshold θ<sub>s</sub></label><output id="av-thr-s-v"></output></div>
+              <input type="range" id="av-thr-s" min="0.05" max="0.9" step="0.01" value="0.35">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-thr-m">Malicious threshold θ<sub>m</sub></label><output id="av-thr-m-v"></output></div>
+              <input type="range" id="av-thr-m" min="0.1" max="0.98" step="0.01" value="0.6">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="av-budget">Evidence budget per file</label><output id="av-budget-v"></output></div>
+              <input type="range" id="av-budget" min="1" max="15" step="1" value="5">
+            </div>
+            <p class="hint">Threshold changes re-classify files immediately using the evidence already gathered.</p>
+          </div>
+        </aside>
+
+        <div class="lab-main">
+          <div class="card">
+            <div class="card-head">
+              <h3><i data-icon="layers"></i>Simulated file system &amp; investigation trails</h3>
+              <span class="pill" id="av-status">Idle</span>
+            </div>
+            <div class="phases" id="av-phases" aria-label="Detection pipeline phases">
+              <div class="phase" data-phase="1"><b>01</b><span>Ants select files</span></div>
+              <div class="phase" data-phase="2"><b>02</b><span>Engine evaluates</span></div>
+              <div class="phase" data-phase="3"><b>03</b><span>Evidence → R̂</span></div>
+              <div class="phase" data-phase="4"><b>04</b><span>Evaporate + deposit</span></div>
+              <div class="phase" data-phase="5"><b>05</b><span>Priorities update</span></div>
+              <div class="phase" data-phase="6"><b>06</b><span>Classify (rules)</span></div>
+              <div class="phase" data-phase="7"><b>07</b><span>Highlight threats</span></div>
+            </div>
+            <div class="viz av"><canvas id="av-canvas" aria-label="File system graph. Click a file to inspect it."></canvas></div>
+            <div class="legend">
+              <span class="sw"><span class="line" style="height:1px;opacity:.3"></span>weak trail</span>
+              <span class="sw"><span class="line" style="height:3px;opacity:.65"></span>medium</span>
+              <span class="sw"><span class="line" style="height:6px;box-shadow:0 0 8px var(--gold)"></span>strong (glow)</span>
+              <span class="sw"><span class="line" style="height:1px;background:#3a3a46;border-top:1px dashed #5a5a66"></span>never investigated (neutral τ₀)</span>
+              <span class="sw"><span class="dot" style="background:var(--pending)"></span>pending</span>
+              <span class="sw"><span class="dot" style="background:var(--scanning)"></span>inconclusive</span>
+              <span class="sw"><span class="dot" style="background:var(--clean)"></span>clean</span>
+              <span class="sw"><span class="dot" style="background:var(--suspicious)"></span>suspicious</span>
+              <span class="sw"><span class="dot" style="background:var(--malicious)"></span>malicious</span>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="k">Iteration</div><div class="v" id="av-it">0</div></div>
+              <div class="stat"><div class="k">Files scanned</div><div class="v" id="av-scanned">0 / 0</div></div>
+              <div class="stat"><div class="k">Threats confirmed</div><div class="v" id="av-threats" style="color:#fda4af">0</div></div>
+              <div class="stat"><div class="k">Flagged suspicious</div><div class="v" id="av-flagged" style="color:#fcd34d">0</div></div>
+              <div class="stat"><div class="k">Deep-scan evaluations</div><div class="v" id="av-evals">0</div></div>
+              <div class="stat"><div class="k">Simulated cost units</div><div class="v" id="av-cost">0</div></div>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="file"></i>File inspector</h3><span class="card-sub">click any file node</span></div>
+              <div class="card-body" id="av-inspector"><p class="inspector-empty">Click a file on the graph to see its evidence, risk estimate, confidence margin, investigation count, pheromone history and the reasons for its classification.</p></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="log"></i>Live scan log</h3><span class="card-sub">by iteration</span></div>
+              <div class="log" id="av-log" role="log" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3><i data-icon="scale"></i>Detection quality vs synthetic ground truth</h3><span class="card-sub">positive = classified malicious · recomputed every iteration</span></div>
+            <div class="card-body" style="display:grid;gap:16px">
+              <div class="split even">
+                <div class="confusion" aria-label="Confusion matrix">
+                  <div class="h"></div><div class="h">Truth: malicious</div><div class="h">Truth: benign</div>
+                  <div class="h">Pred: malicious</div><div><div class="n" id="av-tp">0</div><div class="h">TP</div></div><div><div class="n" id="av-fp">0</div><div class="h">FP</div></div>
+                  <div class="h">Pred: not malicious</div><div><div class="n" id="av-fn">0</div><div class="h">FN</div></div><div><div class="n" id="av-tn">0</div><div class="h">TN</div></div>
+                </div>
+                <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+                  <div class="metric"><div class="k">Precision</div><div class="v" id="av-prec">—</div><div class="s">TP / (TP+FP)</div></div>
+                  <div class="metric"><div class="k">Recall</div><div class="v" id="av-rec">—</div><div class="s">TP / (TP+FN)</div></div>
+                  <div class="metric"><div class="k">F1 score</div><div class="v" id="av-f1">—</div><div class="s">harmonic mean</div></div>
+                </div>
+              </div>
+              <div class="banner"><i data-icon="info"></i><div style="display:grid;gap:8px;width:100%">
+                <div><b>Simulated overhead comparison.</b> Re-runs this exact dataset, seed and noise model head-to-head: ACO scheduler vs uniform-random scheduler (α = β = 0). Cost units are a simulation quantity (1 unit + 1 per 50 MB scanned), not measured CPU time.</div>
+                <div><button class="btn sm" id="av-compare"><i data-icon="scale"></i><span>Run comparison on this scenario</span></button></div>
+                <div id="av-compare-out" class="mono" style="font-size:12px"></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== -->
+    <!-- 3. MUMBAI ROUTING LAB                                            -->
+    <!-- =============================================================== -->
+    <section class="view" id="view-map" role="tabpanel" aria-labelledby="tab-map">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">Lab 3 · Source → destination shortest path</div>
+          <h2>Mumbai road routing: ACO vs Dijkstra</h2>
+          <p>A real OpenStreetMap subset of Mumbai's major roads. Ants walk the actual road graph; pheromone on each road is drawn from the live simulation. Dijkstra on the same graph and the same edge costs gives the exact optimum for comparison.</p>
+        </div>
+      </div>
+
+      <div class="lab">
+        <aside class="card card-pad controls" aria-label="Routing controls">
+          <div class="group">
+            <div class="group-title">Route</div>
+            <div class="field">
+              <label for="map-origin">Origin</label>
+              <input class="input" id="map-origin" list="map-places" placeholder="Search a locality…" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="map-dest">Destination</label>
+              <div class="input-row">
+                <input class="input" id="map-dest" list="map-places" placeholder="Search a locality…" autocomplete="off">
+                <button class="btn icon" id="map-swap" title="Swap origin and destination"><i data-icon="swap"></i><span class="sr-only">Swap</span></button>
+              </div>
+            </div>
+            <datalist id="map-places"></datalist>
+            <p class="hint" id="map-snap">Tip: click any road junction on the map to set origin/destination.</p>
+            <div class="field">
+              <span class="label">Objective</span>
+              <div class="seg" id="map-objective" role="group" aria-label="Optimisation objective">
+                <button data-value="time" aria-pressed="true">Lowest est. time</button>
+                <button data-value="distance" aria-pressed="false">Shortest distance</button>
+              </div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-title">Run</div>
+            <div class="btn-row four">
+              <button class="btn primary" id="map-start"><i data-icon="play"></i><span>Run</span></button>
+              <button class="btn" id="map-step"><i data-icon="step"></i><span>Step</span></button>
+              <button class="btn" id="map-reset"><i data-icon="reset"></i><span>Reset</span></button>
+              <button class="btn icon" id="map-dice" title="New random seed"><i data-icon="dice"></i><span class="sr-only">New random seed</span></button>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-speed">Animation speed</label><output id="map-speed-v"></output></div>
+              <input type="range" id="map-speed" min="1" max="5" step="1" value="3">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-maxit">Stop after (iterations)</label><output id="map-maxit-v"></output></div>
+              <input type="range" id="map-maxit" min="10" max="300" step="10" value="80">
+            </div>
+            <div class="field">
+              <label for="map-seed">Seed</label>
+              <input class="input mono" id="map-seed" type="number" min="1" max="999999999" value="7" inputmode="numeric">
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-title">Hyperparameters</div>
+            <div class="field">
+              <div class="field-top"><label for="map-alpha">Pheromone weight α</label><output id="map-alpha-v"></output></div>
+              <input type="range" id="map-alpha" min="0" max="5" step="0.1" value="1">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-beta">Heuristic weight β</label><output id="map-beta-v"></output></div>
+              <input type="range" id="map-beta" min="0" max="10" step="0.1" value="1.5">
+              <p class="hint">η = 1 / (detour the road adds vs. heading straight to the destination).</p>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-rho">Evaporation ρ</label><output id="map-rho-v"></output></div>
+              <input type="range" id="map-rho" min="0.01" max="0.9" step="0.01" value="0.1">
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-ants">Ants per iteration</label><output id="map-ants-v"></output></div>
+              <input type="range" id="map-ants" min="1" max="80" step="1" value="30">
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-title">Simulated congestion</div>
+            <div class="banner warn" style="padding:8px 10px"><i data-icon="traffic"></i><span>No live traffic is used. Multipliers are <b>simulated</b> and change the travel-time cost of the affected roads; distance is unaffected.</span></div>
+            <div class="field">
+              <label for="map-corridor">Corridor (OSM road name)</label>
+              <select class="input" id="map-corridor"></select>
+            </div>
+            <div class="field">
+              <div class="field-top"><label for="map-mult">Multiplier</label><output id="map-mult-v"></output></div>
+              <input type="range" id="map-mult" min="1" max="8" step="0.5" value="3">
+            </div>
+            <div class="btn-row">
+              <button class="btn" id="map-congest"><i data-icon="traffic"></i><span>Apply</span></button>
+              <button class="btn" id="map-clear"><span>Clear all</span></button>
+            </div>
+            <label class="check"><input type="checkbox" id="map-click-congest"> Click a road on the map to congest it</label>
+            <p class="hint" id="map-congest-info">No congestion applied.</p>
+          </div>
+        </aside>
+
+        <div class="lab-main">
+          <div class="card">
+            <div class="card-head">
+              <h3><i data-icon="map"></i>Greater Mumbai — major-road graph</h3>
+              <span class="pill" id="map-status">Loading data…</span>
+            </div>
+            <div class="viz map">
+              <div id="map" aria-label="Interactive map of Mumbai"></div>
+              <div class="viz-msg" id="map-msg" hidden><div class="box" id="map-msg-box"></div></div>
+            </div>
+            <div class="legend">
+              <span class="sw"><span class="line" style="height:1px;background:#4a4a58"></span>road (no deposits yet)</span>
+              <span class="sw"><span class="line" style="height:2px;opacity:.5"></span>weak τ</span>
+              <span class="sw"><span class="line" style="height:4px;opacity:.8"></span>medium</span>
+              <span class="sw"><span class="line" style="height:6px;box-shadow:0 0 8px var(--gold)"></span>strong τ (glow)</span>
+              <span class="sw"><span class="line" style="height:3px;background:var(--teal)"></span>ACO best-so-far</span>
+              <span class="sw"><span class="line" style="height:2px;background:#fff;border-top:2px dashed #fff;opacity:.8"></span>Dijkstra optimum</span>
+              <span class="sw"><span class="line" style="height:3px;background:var(--malicious)"></span>congested</span>
+            </div>
+            <div class="stats">
+              <div class="stat"><div class="k">Iteration</div><div class="v" id="map-it">0</div></div>
+              <div class="stat"><div class="k">ACO best cost</div><div class="v gold" id="map-best">—</div></div>
+              <div class="stat"><div class="k">Dijkstra optimum</div><div class="v" id="map-dij">—</div></div>
+              <div class="stat"><div class="k">Avg ant cost</div><div class="v" id="map-avg">—</div></div>
+              <div class="stat"><div class="k">Ants reaching dest.</div><div class="v" id="map-succ">—</div></div>
+              <div class="stat"><div class="k">Graph</div><div class="v" id="map-graph">—</div></div>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="scale"></i>ACO vs Dijkstra (same graph, same costs)</h3><span class="card-sub" id="map-obj-label"></span></div>
+              <div class="card-body">
+                <div style="overflow-x:auto">
+                  <table class="route-table">
+                    <thead><tr><th>Route</th><th>Distance</th><th>Est. time</th><th>Road edges</th><th>Compute</th></tr></thead>
+                    <tbody>
+                      <tr><td>ACO best-so-far</td><td id="r-aco-d">—</td><td id="r-aco-t">—</td><td id="r-aco-e">—</td><td id="r-aco-ms">—</td></tr>
+                      <tr><td>Dijkstra (reference)</td><td id="r-dij-d">—</td><td id="r-dij-t">—</td><td id="r-dij-e">—</td><td id="r-dij-ms">—</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="verdict" id="map-verdict">Choose an origin and destination, then press Run.</div>
+                <p class="hint" style="margin-top:8px">ACO is stochastic: it is not guaranteed to find the global optimum. Compute times are measured in this browser with <span class="mono">performance.now()</span>; ACO time is the cumulative time of all iterations.</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="chart"></i>Route cost by iteration</h3><span class="card-sub" id="map-chart-unit"></span></div>
+              <div class="card-body"><div class="chart-box"><canvas id="map-chart"></canvas></div></div>
+            </div>
+          </div>
+
+          <div class="split">
+            <div class="card">
+              <div class="card-head"><h3><i data-icon="cursor"></i>Road inspector</h3><span class="card-sub">click a road on the map</span></div>
+              <div class="card-body" id="map-inspector"><p class="inspector-empty">Click any road to see its OSM name and class, length, speed assumption, congestion multiplier, current traversal cost, pheromone τ and τ history.</p></div>
+            </div>
+            <div class="card card-pad explain">
+              <h3 style="font-size:14px">About the data</h3>
+              <p id="map-data-desc">Loading…</p>
+              <p><strong>Distance</strong> is computed from OSM geometry (haversine). <strong>Estimated time</strong> uses the OSM <span class="mono">maxspeed</span> tag where present and otherwise an assumed free-flow speed per road class — it is not real-time traffic.</p>
+              <p>Only motorway → secondary roads (and links) are included, so local streets are absent and routes are approximations of what a navigation app would return.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== -->
+    <!-- 4. METHODOLOGY                                                   -->
+    <!-- =============================================================== -->
+    <section class="view" id="view-method" role="tabpanel" aria-labelledby="tab-method">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">Research &amp; methodology</div>
+          <h2>Assumptions, formulas, data and limitations</h2>
+          <p>What each lab computes, how it is evaluated, and where the simulation stops being representative of the real world.</p>
+        </div>
+      </div>
+      <div class="method">
+        <nav class="toc" aria-label="Methodology sections">
+          <a href="#m-aco">1. Ant System for the TSP</a>
+          <a href="#m-ee">2. Exploration vs exploitation</a>
+          <a href="#m-av">3. Antivirus prioritisation model</a>
+          <a href="#m-route">4. Road routing &amp; Dijkstra</a>
+          <a href="#m-data">5. Datasets</a>
+          <a href="#m-eval">6. Evaluation metrics</a>
+          <a href="#m-limits">7. Limitations</a>
+          <a href="#m-tests">8. Verification</a>
+          <a href="#m-refs">9. References</a>
+        </nav>
+        <article class="card card-pad prose" id="method-body">
+          <h3 id="m-aco" style="margin-top:0">1. Ant System for the Travelling Salesperson Problem</h3>
+          <p>Each of \(m\) ants starts at a random node and repeatedly moves from node \(i\) to an unvisited node \(j\) with probability</p>
+          <div class="eq">$$P_{ij}^k=\frac{\tau_{ij}^{\alpha}\,\eta_{ij}^{\beta}}{\sum_{l\in N_i^k}\tau_{il}^{\alpha}\,\eta_{il}^{\beta}},\qquad \eta_{ij}=\frac{1}{d_{ij}}$$</div>
+          <p>where \(N_i^k\) is the set of nodes ant \(k\) has not yet visited. When all \(m\) tours are complete, every edge evaporates and each ant deposits pheromone inversely proportional to its tour length:</p>
+          <div class="eq">$$\tau_{ij}\leftarrow(1-\rho)\,\tau_{ij}+\sum_{k=1}^{m}\Delta\tau_{ij}^{k},\qquad \Delta\tau_{ij}^{k}=\begin{cases}Q/L_k & (i,j)\in T_k\\0&\text{otherwise}\end{cases}$$</div>
+          <ul>
+            <li><b>Initialisation:</b> \(\tau_0=m/C^{nn}\), with \(C^{nn}\) the nearest-neighbour tour length (Dorigo &amp; Stützle, 2004); \(Q=1\).</li>
+            <li><b>Numerics:</b> probabilities are computed in log-space with the log-sum-exp trick, so large α/β cannot overflow; distances are floored at \(10^{-9}\) so \(\eta\) is always finite; τ is guarded against underflow.</li>
+            <li><b>Best solutions:</b> the best tour of every iteration and the best-so-far tour are both tracked; the convergence chart plots best-so-far, iteration-best and the average tour of all ants.</li>
+            <li><b>Ground truth:</b> for \(n\le 15\) the exact optimum is computed with Held–Karp dynamic programming, \(O(n^2 2^n)\), and the gap \((L^*_{ACO}-L_{opt})/L_{opt}\) is shown. For the circle preset the optimum is the polygon perimeter.</li>
+          </ul>
+
+          <h3 id="m-ee">2. Exploration vs exploitation</h3>
+          <p><b>Exploitation</b> concentrates search around what is already known to be good: large α (follow trails) or large β (greedy nearest choice). <b>Exploration</b> samples alternatives: small α, larger ρ (faster forgetting), and the stochastic roulette wheel. Pure exploitation causes <i>stagnation</i>, where all ants construct the same tour; pure exploration (α = β = 0) is a random search. ACO's performance depends on balancing the two.</p>
+
+          <h3 id="m-av">3. ACO-inspired antivirus prioritisation (Lab 2)</h3>
+          <p>This is an <b>ACO-inspired adaptation</b>, not a canonical ACO formula and not a real antivirus. Four quantities are kept separate:</p>
+          <table>
+            <tr><th>Quantity</th><th>Meaning</th><th>Used for</th></tr>
+            <tr><td>Evidence \(x=(s,b,a)\)</td><td>Noisy observations from one simulated deep scan: signature match, behavioural anomaly, suspicious attributes, each in [0,1] with Gaussian noise σ = 0.2 (clipped).</td><td>Risk estimate</td></tr>
+            <tr><td>Risk \(\hat R\)</td><td>\(\hat R = w_1\bar s + w_2\bar b + w_3\bar a\), weights (0.45, 0.35, 0.20) normalised to sum to 1; \(\bar x\) = mean of the file's observations.</td><td>Classification and deposit size</td></tr>
+            <tr><td>Pheromone τ</td><td>Optimisation signal: where the colony should look next.</td><td>File selection only</td></tr>
+            <tr><td>Classification</td><td>Decision rules on \(\hat R\) and its uncertainty margin.</td><td>Reported verdict</td></tr>
+          </table>
+          <h4>Selection (phase 1)</h4>
+          <div class="eq">$$P(f)=\frac{\tau_f^{\alpha}\,\eta_f^{\beta}}{\sum_{g\in A}\tau_g^{\alpha}\,\eta_g^{\beta}},\qquad \eta_f=\pi_f\,(1-C(n_f))$$</div>
+          <p>\(\pi_f\) is a static-triage prior from metadata alone (extension and folder), available before any deep scan; the factor \(1-C(n_f)\) lowers visibility as evidence accumulates, steering ants to where another scan is most informative. \(A\) is the Allowed set: files without a final verdict, plus confirmed threats kept under monitoring. Within one iteration ants choose distinct files.</p>
+          <h4>Deposit and evaporation (phase 4)</h4>
+          <div class="eq">$$\Delta\tau_f = Q\,(\varepsilon+\hat R_f)\,C(n_f),\qquad C(n)=\frac{n}{n+\kappa},\qquad \tau_f\leftarrow \mathrm{clip}\big((1-\rho)\tau_f+\textstyle\sum\Delta\tau_f,\;\tau_{min},\tau_{max}\big)$$</div>
+          <p>with \(Q=1,\ \varepsilon=0.05,\ \kappa=2,\ \tau_{min}=0.05,\ \tau_{max}=6\) (MAX–MIN bounds, Stützle &amp; Hoos 2000). Files never investigated keep a neutral baseline \(\tau_0=0.2\) — they have no trail yet. The bounds keep τ finite; repeated investigation cannot grow it without limit.</p>
+          <h4>Classification (phase 6)</h4>
+          <p>With margin \(m_n = z\,\sigma_R/\sqrt{n}\), \(\sigma_R=\sigma\lVert w\rVert_2\), \(z=1.645\) (one-sided 95 %):</p>
+          <ul>
+            <li><b>Malicious</b> if \(\hat R-m_n\ge\theta_m\) (confirmed).</li>
+            <li><b>Clean</b> if \(\hat R+m_n<\theta_s\).</li>
+            <li><b>Suspicious</b> if \(\hat R\ge\theta_s\) otherwise (final "flag for review" once \(\hat R+m_n<\theta_m\)).</li>
+            <li><b>Inconclusive</b> otherwise; after the evidence budget (default 5 scans) the point estimate decides between suspicious and clean — never malicious.</li>
+          </ul>
+          <p>Pheromone does not appear in any rule above: a file can only be confirmed malicious by its evidence.</p>
+          <h4>Scenarios</h4>
+          <p><i>Normal</i>: 46 benign files. <i>Suspicious</i>: benign files including 5 "grey" ones (unsigned installers, macro sheets, packed tools) with elevated behaviour/attribute features — tests false positives. <i>Infected</i>: 3 grey files, 2 known-signature samples and 1 zero-day-like sample (no signature, strong behaviour). The zero-day sample usually ends as <i>suspicious</i>, producing an honest false negative at default thresholds.</p>
+
+          <h3 id="m-route">4. Road routing with ACO and Dijkstra (Lab 3)</h3>
+          <p>The objective is a <b>single-pair shortest path</b> (not a tour). Each ant walks from the origin; at junction \(i\) it chooses an outgoing road \((i,j)\) with</p>
+          <div class="eq">$$P_{ij}=\frac{\tau_{ij}^{\alpha}\,\eta_{ij}^{\beta}}{\sum_{l\in A_i}\tau_{il}^{\alpha}\,\eta_{il}^{\beta}},\qquad \eta_{ij}=\frac{1}{\max\big(0,\;c_{ij}+h(j)-h(i)\big)+\delta}$$</div>
+          <p>\(c_{ij}\) is the edge cost under the selected objective, \(h\) a straight-line estimate of the remaining cost (for time: straight-line distance at the network's length-weighted mean free-flow speed), and \(\delta\) a quarter of the mean edge cost. The denominator is the A*-style <i>reduced cost</i> — the detour a road adds compared with heading straight to the destination. \(h\) only shapes visibility; it never prunes, and Dijkstra does not use it. Without goal-directed visibility, ants on a graph with thousands of junctions almost never reach the destination.</p>
+          <p><b>Allowed set \(A_i\)</b>: roads to junctions the ant has not visited. Because half the junctions sit on one-way carriageways, an ant may become boxed in; it may then revisit junctions with a strong penalty instead of being abandoned. On arrival, cycles are erased from the walk (loop elimination, as in AntNet), so every deposited route is a simple connected path. Successful ants deposit \(Q/L_k\); every road evaporates by ρ.</p>
+          <ul>
+            <li><b>Distance objective:</b> \(c_{ij}\) = road length (m).</li>
+            <li><b>Time objective:</b> \(c_{ij}\) = length / free-flow speed × congestion multiplier (s).</li>
+            <li><b>Dijkstra</b> runs on the identical graph with the identical cost function; for non-negative costs it returns the exact optimum and serves as the reference. When congestion changes, both are recomputed; ACO keeps its pheromone and adapts, and its stored best route is re-priced under the new costs.</li>
+          </ul>
+
+          <h3 id="m-data">5. Datasets</h3>
+          <ul>
+            <li><b>Mumbai roads:</b> OpenStreetMap ways tagged <span class="mono">highway=motorway|trunk|primary|secondary</span> and their <span class="mono">*_link</span> roads in the bounding box 18.89–19.27 °N, 72.77–73.03 °E, downloaded through the Overpass API. <span id="m-data-counts"></span> Ways are split at junctions; one-way rules follow OSM tags; only the largest strongly connected component is kept so every origin can reach every destination. Data © OpenStreetMap contributors, ODbL 1.0. Build script: <span class="mono">tools/build-mumbai-graph.mjs</span>.</li>
+            <li><b>Basemap:</b> CARTO "Dark Matter" raster tiles (© OpenStreetMap contributors, © CARTO), free for non-commercial use with attribution. If tiles fail to load, the road graph still renders from the bundled data.</li>
+            <li><b>Locality list:</b> approximate locality centres, snapped to the nearest graph junction (snap distance is displayed).</li>
+            <li><b>Antivirus files:</b> fully synthetic, generated from a seed; ground truth is known by construction.</li>
+          </ul>
+
+          <h3 id="m-eval">6. Evaluation metrics</h3>
+          <ul>
+            <li><b>TSP:</b> best-so-far length, iteration best, average, gap to Held–Karp optimum.</li>
+            <li><b>Antivirus:</b> confusion matrix against ground truth (positive = classified malicious); precision \(TP/(TP+FP)\), recall \(TP/(TP+FN)\), \(F_1\). When a denominator is zero the metric is reported as <i>undefined</i>, not as 0 % or 100 %. Simulated cost units and a head-to-head comparison against a uniform-random scheduler on the same seed.</li>
+            <li><b>Routing:</b> ACO best vs Dijkstra optimum under the chosen objective, both distance and time for each route, relative gap, iteration count, fraction of ants reaching the destination, and measured compute time.</li>
+          </ul>
+
+          <h3 id="m-limits">7. Limitations</h3>
+          <ul>
+            <li>ACO is a stochastic heuristic: no guarantee of optimality; results depend on parameters and seed.</li>
+            <li>The road graph covers major roads only; turn restrictions, signals, tolls and local streets are not modelled. Speeds are free-flow assumptions, congestion is simulated, and no real-time traffic is used.</li>
+            <li>The antivirus lab models scheduling of investigations, not detection technology. Feature distributions, weights and thresholds are illustrative choices, not values learned from malware data.</li>
+            <li>Browser timings vary between machines and include JavaScript overhead; they are indicative only.</li>
+          </ul>
+
+          <h3 id="m-tests">8. Verification</h3>
+          <p>The algorithm core (<span class="mono">js/core/</span>) has no DOM dependency and is covered by automated tests (<span class="mono">npm test</span>): valid tours and paths, finite non-negative pheromone, evaporation behaviour, α/β influence, Held–Karp exactness, Dijkstra vs brute force, ACO path connectivity, congestion changing routes, metrics recomputation and threshold effects. A browser end-to-end script exercises every control.</p>
+
+          <h3 id="m-refs">9. References</h3>
+          <ol>
+            <li>M. Dorigo, V. Maniezzo, A. Colorni, "Ant System: optimization by a colony of cooperating agents," <i>IEEE Trans. SMC-B</i>, 26(1), 1996.</li>
+            <li>M. Dorigo, T. Stützle, <i>Ant Colony Optimization</i>, MIT Press, 2004.</li>
+            <li>T. Stützle, H. H. Hoos, "MAX–MIN Ant System," <i>Future Generation Computer Systems</i>, 16(8), 2000.</li>
+            <li>G. Di Caro, M. Dorigo, "AntNet: distributed stigmergetic control for communications networks," <i>JAIR</i>, 9, 1998.</li>
+            <li>M. Held, R. M. Karp, "A dynamic programming approach to sequencing problems," <i>J. SIAM</i>, 10(1), 1962.</li>
+            <li>E. W. Dijkstra, "A note on two problems in connexion with graphs," <i>Numerische Mathematik</i>, 1, 1959.</li>
+            <li>OpenStreetMap contributors, <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">openstreetmap.org/copyright</a>.</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <aside class="demo" id="demo" hidden aria-live="polite" aria-label="Guided demonstration">
+    <div class="demo-top">
+      <div><div class="step-n" id="demo-n"></div><h4 id="demo-title"></h4></div>
+      <button class="btn icon sm" id="demo-close" title="Close guided demo"><i data-icon="x"></i><span class="sr-only">Close</span></button>
+    </div>
+    <div class="body" id="demo-body"></div>
+    <div class="live" id="demo-live" hidden></div>
+    <div class="demo-nav">
+      <button class="btn sm" id="demo-prev"><i data-icon="prev"></i><span>Back</span></button>
+      <div class="dots" id="demo-dots"></div>
+      <button class="btn sm" id="demo-act" hidden></button>
+      <button class="btn sm primary" id="demo-next"><span>Next</span><i data-icon="next"></i></button>
+    </div>
+  </aside>
+
+  <footer>
+    <div><b>BTech Project:</b> Bio-Inspired Intelligent Algorithms — Ant Colony Optimization (Vidhi C403, Amrit C405, Rushi C429, Naishi C430)</div>
+    <div>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL) · Educational simulation</div>
+  </footer>
 </body>
 </html>

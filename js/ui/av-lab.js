@@ -1,0 +1,478 @@
+// Lab 2 — UI controller for the ACO-inspired antivirus prioritiser.
+// One iteration is animated as 7 phases. Drawing uses a snapshot of the state *before* the
+// engine commits, then switches to the committed state, so the picture never runs ahead of
+// (or diverges from) the algorithm.
+
+import { randomSeed } from '../core/rng.js';
+import { generateFileSystem, AntivirusAco, compareSchedulers, STATUS, AV_DEFAULTS, normaliseWeights } from '../core/antivirus.js';
+import { $, $$, fmt, bindRange, bindSeg, setPill, fitCanvas, drawSparkline, Runner, escapeHtml } from './util.js';
+
+const COLORS = { pending: '#6b7280', scanning: '#60a5fa', clean: '#34d399', suspicious: '#f59e0b', malicious: '#f43f5e' };
+const STATUS_LABEL = { pending: 'pending', scanning: 'inconclusive', clean: 'clean', suspicious: 'suspicious', malicious: 'malicious' };
+// Phase durations (ms) at speed 1; divided by the speed factor.
+const PHASE_MS = [0, 1400, 700, 500, 700, 400, 500, 500];
+const SPEED_FACTOR = [0, 0.5, 1, 1.8, 3.2, 6];
+
+/** Trail intensity on a log scale between the MAX–MIN bounds (0 = τmin, 1 = τmax). */
+export function trailLevel(tau, p = AV_DEFAULTS) {
+  return Math.max(0, Math.min(1, Math.log(tau / p.tauMin) / Math.log(p.tauMax / p.tauMin)));
+}
+
+export function initAvLab() {
+  const canvas = $('#av-canvas');
+  const statusEl = $('#av-status');
+  const startBtn = $('#av-start');
+  const logEl = $('#av-log');
+
+  const st = {
+    scenario: 'infected',
+    seed: 42,
+    speed: 3,
+    selected: null,
+    phase: 0, // 0 idle, 1..7 animation phase
+    phaseStart: 0,
+    plan: null,
+    commitResult: null,
+    snapshot: null, // {tau:[], status:[], riskHat:[]} before commit
+    running: false,
+    complete: false,
+    newlyMalicious: new Set(),
+  };
+  const params = { ants: 8, rho: 0.05, alpha: 1, beta: 2, thrSuspicious: 0.35, thrMalicious: 0.6, maxInvestigations: 5 };
+  let eng = null;
+
+  // ------------------------------------------------------------- controls
+  bindRange($('#av-speed'), $('#av-speed-v'), (v) => { st.speed = v; }, (v) => ['', 'slow', 'calm', 'normal', 'fast', 'turbo'][v]);
+  const setAnts = bindRange($('#av-ants'), $('#av-ants-v'), (v) => { params.ants = v; eng?.setParams({ ants: v }); renderPanels(); }, String);
+  const setRho = bindRange($('#av-rho'), $('#av-rho-v'), (v) => { params.rho = v; eng?.setParams({ rho: v }); }, (v) => v.toFixed(2));
+  bindRange($('#av-alpha'), $('#av-alpha-v'), (v) => { params.alpha = v; eng?.setParams({ alpha: v }); renderPanels(); }, (v) => v.toFixed(1));
+  bindRange($('#av-beta'), $('#av-beta-v'), (v) => { params.beta = v; eng?.setParams({ beta: v }); renderPanels(); }, (v) => v.toFixed(1));
+  const thrS = $('#av-thr-s'); const thrM = $('#av-thr-m');
+  const onThreshold = () => {
+    let s = Number(thrS.value); let m = Number(thrM.value);
+    if (m < s + 0.02) { m = Math.min(0.98, s + 0.02); thrM.value = m; }
+    params.thrSuspicious = s; params.thrMalicious = Number(thrM.value);
+    $('#av-thr-s-v').textContent = s.toFixed(2);
+    $('#av-thr-m-v').textContent = params.thrMalicious.toFixed(2);
+    if (eng) {
+      const before = eng.files.map((f) => f.status);
+      eng.setParams({ thrSuspicious: s, thrMalicious: params.thrMalicious });
+      const changed = eng.files.filter((f, i) => f.status !== before[i]);
+      if (changed.length) log(`thresholds θs=${s.toFixed(2)}, θm=${params.thrMalicious.toFixed(2)} → ${changed.length} file(s) re-classified from existing evidence`, 'info');
+      st.complete = eng.isComplete();
+      renderAll();
+    }
+  };
+  thrS.addEventListener('input', onThreshold);
+  thrM.addEventListener('input', onThreshold);
+  $('#av-thr-s-v').textContent = Number(thrS.value).toFixed(2);
+  $('#av-thr-m-v').textContent = Number(thrM.value).toFixed(2);
+  bindRange($('#av-budget'), $('#av-budget-v'), (v) => {
+    params.maxInvestigations = v;
+    if (eng) { eng.setParams({ maxInvestigations: v }); st.complete = eng.isComplete(); renderAll(); }
+  }, String);
+  const scenarioSeg = bindSeg($('#av-scenario'), (v) => { st.scenario = v; load(); });
+  const seedInput = $('#av-seed');
+  seedInput.addEventListener('change', () => {
+    const v = Math.floor(Number(seedInput.value));
+    if (!(v >= 1 && v <= 999999999)) { seedInput.value = st.seed; return; }
+    st.seed = v; load();
+  });
+  $('#av-dice').addEventListener('click', () => { st.seed = randomSeed(); seedInput.value = st.seed; load(); });
+  $('#av-reset').addEventListener('click', () => load());
+  startBtn.addEventListener('click', () => (st.running ? pause() : start()));
+  $('#av-step').addEventListener('click', () => { if (st.running) pause(); if (st.phase === 0) beginIteration(); });
+  $('#av-inject').addEventListener('click', () => {
+    if (!eng) return;
+    const f = eng.injectMalware();
+    st.complete = false;
+    log(`INJECTED simulated malware: ${f.name} into ${eng.dirs[f.dir].name} (ground truth: malicious, not yet investigated)`, 'mal');
+    setPill(statusEl, 'error', 'Threat injected');
+    renderAll();
+  });
+  $('#av-compare').addEventListener('click', () => {
+    if (!eng) return;
+    const out = $('#av-compare-out');
+    out.textContent = 'Running both schedulers…';
+    setTimeout(() => {
+      const t0 = performance.now();
+      const res = compareSchedulers(eng.dataset, { ...params }, st.seed);
+      const ms = performance.now() - t0;
+      const line = (name, r) => `${name.padEnd(16)} first confirmed threat: ${r.first ? `${r.first.evaluations} evals / ${r.first.cost.toFixed(1)} units (it ${r.first.iteration})` : 'none'}`
+        + ` · all verdicts: ${r.complete ? `${r.evaluations} evals, coverage ${r.coverageCost.toFixed(1)} + monitoring ${r.monitorCost.toFixed(1)} units` : 'not reached'} · TP ${r.tp} FP ${r.fp} FN ${r.fn}`;
+      out.innerHTML = `${escapeHtml(line('ACO (α,β as set)', res.aco))}<br>${escapeHtml(line('Uniform random', res.uniform))}`
+        + `<br><span style="color:var(--muted)">Dataset: original ${eng.dataset.files.length}-file "${st.scenario}" scenario (seed ${st.seed}); injected files are not included. Computed in ${ms.toFixed(0)} ms.</span>`;
+    }, 20);
+  });
+
+  // ------------------------------------------------------------- lifecycle
+  function load() {
+    pause();
+    const ds = generateFileSystem(st.scenario, st.seed);
+    eng = new AntivirusAco(ds, { ...params }, st.seed);
+    st.selected = null;
+    st.phase = 0;
+    st.plan = null;
+    st.snapshot = null;
+    st.complete = false;
+    st.newlyMalicious.clear();
+    logEl.innerHTML = '';
+    const nMal = ds.files.filter((f) => f.truth === 'malicious').length;
+    log(`Loaded "${st.scenario}" scenario, seed ${st.seed}: ${ds.files.length} files in ${ds.dirs.length} folders (ground truth: ${nMal} malicious). Engine idle.`, 'info');
+    $('#av-compare-out').textContent = '';
+    setPill(statusEl, '', 'Idle');
+    updateStartButton();
+    renderAll();
+  }
+
+  function start() {
+    if (st.complete) { setPill(statusEl, 'done', 'Scan complete'); return; }
+    st.running = true;
+    updateStartButton();
+    setPill(statusEl, 'running', 'Scanning');
+    if (st.phase === 0) beginIteration();
+  }
+  function pause() {
+    st.running = false;
+    updateStartButton();
+    if (eng && !st.complete && st.phase === 0) setPill(statusEl, 'paused', 'Paused');
+  }
+  function updateStartButton() {
+    const label = st.running ? 'Pause' : eng && eng.iteration > 0 && !st.complete ? 'Resume' : 'Scan';
+    startBtn.innerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${st.running ? '<path d="M8 4v16M16 4v16"/>' : '<path d="M7 4v16l13-8z"/>'}</svg><span>${label}</span>`;
+  }
+
+  function beginIteration() {
+    if (!eng) return;
+    if (eng.isComplete()) { finish(); return; }
+    st.snapshot = { tau: eng.files.map((f) => f.tau), status: eng.files.map((f) => f.status), riskHat: eng.files.map((f) => f.riskHat), n: eng.files.map((f) => f.n) };
+    st.plan = eng.plan();
+    st.commitResult = null;
+    st.newlyMalicious.clear();
+    if (!st.plan.picks.length) { finish(); return; }
+    setPhase(1);
+    if (!st.running) setPill(statusEl, 'running', 'Stepping');
+    animator.start();
+  }
+
+  function setPhase(p) {
+    st.phase = p;
+    st.phaseStart = performance.now();
+    $$('.phase', $('#av-phases')).forEach((n) => n.classList.toggle('on', Number(n.dataset.phase) === p));
+    if (p === 3) {
+      // the engine evaluates the selected files, computes evidence/risk, deposits, classifies
+      st.commitResult = eng.commit(st.plan);
+      logIteration(st.commitResult);
+    }
+    if (p === 7) {
+      for (const e of st.commitResult.events) if (e.changed && e.status === STATUS.MALICIOUS) st.newlyMalicious.add(e.file);
+    }
+    renderPanels();
+  }
+
+  function endIteration() {
+    st.phase = 0;
+    st.snapshot = null;
+    $$('.phase', $('#av-phases')).forEach((n) => n.classList.remove('on'));
+    st.complete = eng.isComplete();
+    renderAll();
+    if (st.complete) { finish(); return; }
+    if (st.running) beginIteration();
+    else { animator.stop(); setPill(statusEl, 'paused', 'Paused'); draw(); }
+  }
+
+  function finish() {
+    st.running = false;
+    st.complete = true;
+    animator.stop();
+    st.phase = 0;
+    updateStartButton();
+    const m = eng.metrics();
+    setPill(statusEl, 'done', m.tp > 0 ? `Complete · ${m.tp} threat(s)` : 'Complete · no confirmed threats');
+    log(`SCAN COMPLETE at iteration ${eng.iteration}: every file has a final verdict. TP ${m.tp}, FP ${m.fp}, FN ${m.fn}, flagged for review ${m.flagged}.`, 'info');
+    renderAll();
+  }
+
+  const animator = new Runner(() => {
+    const dur = PHASE_MS[st.phase] / SPEED_FACTOR[st.speed];
+    if (st.phase > 0 && performance.now() - st.phaseStart >= dur) {
+      if (st.phase < 7) setPhase(st.phase + 1);
+      else { endIteration(); if (!st.running) return false; }
+    }
+    draw();
+    return true;
+  });
+
+  // ------------------------------------------------------------- logging
+  function log(msg, cls = '') {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.textContent = msg;
+    logEl.append(d);
+    while (logEl.childElementCount > 400) logEl.firstChild.remove();
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function logIteration(res) {
+    const names = res.events.map((e) => eng.files[e.file].name);
+    log(`[it ${res.iteration}] ${res.events.length} ant(s) selected: ${names.join(', ')}`, 'it');
+    for (const e of res.events) {
+      const f = eng.files[e.file];
+      if (e.changed && (e.status === STATUS.MALICIOUS || e.status === STATUS.SUSPICIOUS || (e.status === STATUS.CLEAN && f.resolved))) {
+        const cls = e.status === STATUS.MALICIOUS ? 'mal' : e.status === STATUS.SUSPICIOUS ? 'sus' : 'ok';
+        const tag = e.status === STATUS.MALICIOUS ? 'CONFIRMED MALICIOUS' : e.status.toUpperCase();
+        log(`[it ${res.iteration}]   ${f.name}: R̂ = ${f.riskHat.toFixed(3)} ± ${f.margin.toFixed(3)} (n=${f.n}) → ${tag}; Δτ = +${e.dTau.toFixed(3)}`, cls);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------- layout & drawing
+  let layout = null;
+  function computeLayout(w, h) {
+    const cx = w / 2; const cy = h / 2;
+    const compact = w < 560;
+    const rx2 = Math.max(80, w / 2 - (compact ? 22 : 120));
+    const ry2 = Math.max(80, h / 2 - (compact ? 22 : 92));
+    const rx1 = rx2 * 0.42; const ry1 = ry2 * 0.42;
+    const files = eng.files;
+    const byDir = eng.dirs.map((d) => files.filter((f) => f.dir === d.id));
+    const total = files.length;
+    const gap = 0.12;
+    const usable = Math.PI * 2 - gap * eng.dirs.length;
+    let a = -Math.PI / 2 + gap / 2;
+    const filePos = new Array(files.length);
+    const dirPos = [];
+    byDir.forEach((fs, di) => {
+      const span = usable * (fs.length / total);
+      const mid = a + span / 2;
+      dirPos[di] = { x: cx + rx1 * Math.cos(mid), y: cy + ry1 * Math.sin(mid), a: mid };
+      fs.forEach((f, k) => {
+        const ang = a + span * ((k + 0.5) / fs.length);
+        filePos[f.id] = { x: cx + rx2 * Math.cos(ang), y: cy + ry2 * Math.sin(ang), a: ang };
+      });
+      a += span + gap;
+    });
+    layout = { cx, cy, filePos, dirPos, compact, w, h };
+  }
+
+  function dispTau(f) { return st.snapshot && st.phase > 0 && st.phase < 4 ? st.snapshot.tau[f.id] ?? f.tau : f.tau; }
+  function dispStatus(f) { return st.snapshot && st.phase > 0 && st.phase < 6 ? st.snapshot.status[f.id] ?? f.status : f.status; }
+  function dispRisk(f) { return st.snapshot && st.phase > 0 && st.phase < 3 ? st.snapshot.riskHat[f.id] ?? f.riskHat : f.riskHat; }
+  function dispN(f) { return st.snapshot && st.phase > 0 && st.phase < 3 ? st.snapshot.n[f.id] ?? f.n : f.n; }
+
+  function draw() {
+    if (!eng) return;
+    const { ctx, w, h } = fitCanvas(canvas);
+    computeLayout(w, h);
+    const { cx, cy, filePos, dirPos } = layout;
+    ctx.clearRect(0, 0, w, h);
+    const now = performance.now();
+    const pr = eng.params;
+
+    // root → directory edges: aggregate of child trails (display only)
+    eng.dirs.forEach((d, di) => {
+      const kids = eng.files.filter((f) => f.dir === di);
+      const lvl = Math.max(0, ...kids.map((f) => (f.n > 0 ? trailLevel(dispTau(f), pr) : 0)));
+      strokeTrail(ctx, cx, cy, dirPos[di].x, dirPos[di].y, lvl, lvl === 0);
+    });
+    // directory → file edges: the file's accumulated pheromone τ
+    for (const f of eng.files) {
+      const p = filePos[f.id]; const d = dirPos[f.dir];
+      const neverInvestigated = dispN(f) === 0;
+      strokeTrail(ctx, d.x, d.y, p.x, p.y, neverInvestigated ? 0 : trailLevel(dispTau(f), pr), neverInvestigated);
+    }
+    // root
+    ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI * 2); ctx.fillStyle = '#ffd23f'; ctx.fill();
+    ctx.fillStyle = '#111'; ctx.font = '700 10px Inter, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('NEST', cx, cy + 0.5);
+    // directories
+    eng.dirs.forEach((d, di) => {
+      const p = dirPos[di];
+      ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e1e26'; ctx.fill(); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#b9b9c6'; ctx.font = '600 10.5px Fira Code, monospace';
+      ctx.fillText(d.name.replace('C:/', ''), p.x, p.y + (Math.sin(p.a) >= 0 ? 20 : -18));
+    });
+    // files
+    for (const f of eng.files) {
+      const p = filePos[f.id];
+      const status = dispStatus(f);
+      const r = layout.compact ? 6 : 8;
+      // risk gauge ring (R̂), drawn from the evidence estimate
+      const risk = dispRisk(f);
+      if (risk != null) {
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * risk);
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS[status]; ctx.fill();
+      if (status === STATUS.MALICIOUS) {
+        const pulse = st.newlyMalicious.has(f.id) ? 0.5 + 0.5 * Math.sin(now / 120) : 0.6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 9, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(244,63,94,${pulse})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+      if (st.selected === f.id) {
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 7, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      if (!layout.compact) {
+        // radial labels (like a radial tree) so neighbouring names never overlap
+        const ang = Math.atan2(p.y - cy, p.x - cx);
+        const flip = Math.cos(ang) < 0;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(flip ? ang + Math.PI : ang);
+        ctx.textAlign = flip ? 'right' : 'left';
+        ctx.fillStyle = status === STATUS.MALICIOUS ? '#fecdd3' : status === STATUS.SUSPICIOUS ? '#fde68a' : '#9a9aab';
+        ctx.font = `${st.selected === f.id ? '600 ' : ''}10.5px Inter, system-ui`;
+        ctx.fillText(f.name, flip ? -15 : 15, 0);
+        ctx.restore();
+      }
+    }
+    // phase-specific overlays
+    if (st.phase === 1 || st.phase === 2) drawAnts(ctx, now);
+    if (st.phase >= 2 && st.phase <= 3 && st.plan) {
+      for (const pk of st.plan.picks) {
+        const p = filePos[pk.file];
+        const k = (now / 300) % 1;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10 + 10 * k, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(96,165,250,${1 - k})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+    if (st.phase >= 4 && st.phase <= 5 && st.commitResult) {
+      // individual ant deposits (Δτ of each ant) float above the file
+      const t = Math.min(1, (now - st.phaseStart) / (PHASE_MS[st.phase] / SPEED_FACTOR[st.speed]));
+      ctx.textAlign = 'center';
+      ctx.font = '600 10px Fira Code, monospace';
+      for (const e of st.commitResult.events) {
+        const p = filePos[e.file];
+        ctx.fillStyle = `rgba(255,210,63,${1 - t * 0.6})`;
+        ctx.fillText(`+${e.dTau.toFixed(2)}`, p.x, p.y - 14 - 10 * t);
+      }
+    }
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+
+  function strokeTrail(ctx, x1, y1, x2, y2, lvl, neutral) {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    if (neutral) {
+      ctx.strokeStyle = 'rgba(120,120,135,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]);
+      return;
+    }
+    ctx.lineWidth = 0.8 + 6 * lvl;
+    ctx.strokeStyle = `rgba(255,210,63,${0.12 + 0.85 * lvl})`;
+    if (lvl > 0.7) { ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = 12 * lvl; }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawAnts(ctx, now) {
+    if (!st.plan) return;
+    const { cx, cy, filePos, dirPos } = layout;
+    const dur = PHASE_MS[1] / SPEED_FACTOR[st.speed];
+    const t = st.phase === 1 ? Math.min(1, (now - st.phaseStart) / dur) : 1;
+    ctx.fillStyle = '#ffffff';
+    st.plan.picks.forEach((pk, k) => {
+      const tt = Math.max(0, Math.min(1, t * 1.15 - (k % 5) * 0.03));
+      const d = dirPos[pk.dir]; const f = filePos[pk.file];
+      let x; let y;
+      if (tt < 0.5) { const q = tt / 0.5; x = cx + (d.x - cx) * q; y = cy + (d.y - cy) * q; } else { const q = (tt - 0.5) / 0.5; x = d.x + (f.x - d.x) * q; y = d.y + (f.y - d.y) * q; }
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  // ------------------------------------------------------------- panels
+  function renderStats() {
+    const m = eng.metrics();
+    $('#av-it').textContent = eng.iteration;
+    $('#av-scanned').textContent = `${m.scanned} / ${m.total}`;
+    $('#av-threats').textContent = m.tp + m.fp;
+    $('#av-flagged').textContent = m.flagged;
+    $('#av-evals').innerHTML = `${m.evaluations}${m.monitorEvaluations ? ` <small>(${m.monitorEvaluations} monitor)</small>` : ''}`;
+    $('#av-cost').textContent = m.costUnits.toFixed(1);
+    $('#av-tp').textContent = m.tp; $('#av-fp').textContent = m.fp; $('#av-fn').textContent = m.fn; $('#av-tn').textContent = m.tn;
+    $('#av-prec').textContent = m.precision == null ? 'undefined' : fmt.pct(m.precision);
+    $('#av-rec').textContent = m.recall == null ? 'undefined' : fmt.pct(m.recall);
+    $('#av-f1').textContent = m.f1 == null ? 'undefined' : m.f1.toFixed(3);
+  }
+
+  function renderInspector() {
+    const box = $('#av-inspector');
+    if (st.selected == null || !eng.files[st.selected]) {
+      box.innerHTML = '<p class="inspector-empty">Click a file on the graph to see its evidence, risk estimate, confidence margin, investigation count, pheromone history and the reasons for its classification.</p>';
+      return;
+    }
+    const f = eng.files[st.selected];
+    const w = normaliseWeights(eng.params.weights);
+    const probs = eng.fileSelectionProbabilities();
+    const est = f.est || { sig: 0, beh: 0, attr: 0 };
+    const C = eng.confidence(f.n);
+    const bar = (label, v, weight) => `<div class="bar"><span>${label}</span><div class="track"><div class="fill" style="width:${(v * 100).toFixed(0)}%"></div></div><span class="num">${f.n ? v.toFixed(2) : '—'}</span></div>`;
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div><div class="mono" style="font-size:14px;color:var(--text)">${escapeHtml(f.name)}</div><div class="hint">${escapeHtml(eng.dirs[f.dir].name)} · .${f.ext} · ${(f.sizeKB / 1024).toFixed(1)} MB</div></div>
+        <span class="status-tag st-${f.status}">${STATUS_LABEL[f.status]}${f.resolved ? ' · final' : ''}</span>
+      </div>
+      <div class="bars" style="margin-top:12px">
+        ${bar('Signature', est.sig, w.sig)}${bar('Behaviour', est.beh, w.beh)}${bar('Attributes', est.attr, w.attr)}
+      </div>
+      <div class="formula" style="margin-top:10px">R̂ = ${w.sig.toFixed(2)}·${f.n ? est.sig.toFixed(2) : 's'} + ${w.beh.toFixed(2)}·${f.n ? est.beh.toFixed(2) : 'b'} + ${w.attr.toFixed(2)}·${f.n ? est.attr.toFixed(2) : 'a'} = <b>${f.riskHat != null ? f.riskHat.toFixed(3) : '—'}</b>${f.margin != null ? ` ± ${f.margin.toFixed(3)}` : ''}</div>
+      <dl class="kv" style="margin-top:10px">
+        <dt>Investigations n</dt><dd>${f.n}${f.status === STATUS.MALICIOUS && f.n > eng.params.maxInvestigations ? ' (incl. monitoring re-scans after confirmation)' : ` / budget ${eng.params.maxInvestigations}`}</dd>
+        <dt>Evidence confidence C(n)</dt><dd>${C.toFixed(3)}</dd>
+        <dt>Pheromone τ (accumulated)</dt><dd>${f.tau.toFixed(3)} · trail ${(trailLevel(f.tau, eng.params) * 100).toFixed(0)}%${f.n === 0 ? ' (neutral τ₀)' : ''}</dd>
+        <dt>Last iteration deposit</dt><dd>${f.antsLast ? `+${f.depositsLast.toFixed(3)} from ${f.antsLast} ant` : '—'}</dd>
+        <dt>Visibility η = π(1−C)</dt><dd>${eng.eta(f).toFixed(3)} (prior π ${f.prior.toFixed(2)})</dd>
+        <dt>P(selected by an ant next)</dt><dd>${(probs[f.id] * 100).toFixed(2)}%</dd>
+        <dt>Ground truth (hidden from detector)</dt><dd style="color:${f.truth === 'malicious' ? '#fda4af' : 'var(--text-2)'}">${f.truth}${f.kind === 'zeroday' ? ' (zero-day-like)' : f.kind === 'grey' ? ' (grey / unusual)' : ''}</dd>
+      </dl>
+      <div class="hint" style="margin-top:10px">τ history (${f.tauHistory.length} iterations)</div>
+      <canvas class="spark" id="av-spark"></canvas>
+      <div class="hint" style="margin:8px 0 4px">Why this classification</div>
+      <ul class="reasons">${f.reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`;
+    drawSparkline($('#av-spark'), f.tauHistory.map((x) => x.tau));
+  }
+
+  function renderPanels() { if (!eng) return; renderStats(); renderInspector(); }
+  function renderAll() { draw(); renderPanels(); updateStartButton(); }
+
+  canvas.addEventListener('click', (ev) => {
+    if (!eng || !layout) return;
+    const r = canvas.getBoundingClientRect();
+    const x = ev.clientX - r.left; const y = ev.clientY - r.top;
+    let best = null; let bd = 16;
+    for (const f of eng.files) { const p = layout.filePos[f.id]; const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = f.id; } }
+    st.selected = best;
+    renderAll();
+  });
+  new ResizeObserver(() => draw()).observe(canvas);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && st.running) pause(); });
+
+  load();
+
+  return {
+    get engine() { return eng; },
+    get state() { return st; },
+    pause,
+    start,
+    configure({ scenario, seed, ants, rho }) {
+      pause();
+      if (scenario) { st.scenario = scenario; scenarioSeg.set(scenario, false); }
+      if (seed) { st.seed = seed; seedInput.value = seed; }
+      if (ants) setAnts(ants, true);
+      if (rho) setRho(rho, true);
+      load();
+    },
+    /** Run k iterations instantly (no animation) — same engine calls as the animated path. */
+    fastForward(k) {
+      pause();
+      animator.stop();
+      st.phase = 0; st.snapshot = null;
+      for (let i = 0; i < k && !eng.isComplete(); i++) logIteration(eng.step());
+      st.complete = eng.isComplete();
+      if (st.complete) finish(); else setPill(statusEl, 'paused', 'Paused');
+      renderAll();
+    },
+    stepAnimated() { if (st.phase === 0) beginIteration(); },
+    select(id) { st.selected = id; renderAll(); },
+  };
+}

@@ -1,0 +1,6 @@
+tests/
+tools/
+data/raw/
+node_modules/
+*.md
+!README.md
