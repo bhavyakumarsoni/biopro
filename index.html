@@ -205,7 +205,7 @@
         <div>
           <div class="eyebrow">Lab 2 · ACO-inspired investigation scheduling</div>
           <h2>Antivirus pheromone prioritisation</h2>
-          <p>Ants decide <b>which file to scan next</b>. Evidence decides the verdict; pheromone only sets priority.</p>
+          <p>Ants leave the nest, inspect files and lay pheromone on the way back. Risky files get the <b>strongest trails</b>, and those are the ones detected as malware once the scan evidence confirms them.</p>
         </div>
         <span class="chip warn" title="Synthetic files and features. Real malware does not emit pheromones; pheromone here is a computational priority signal."><i data-icon="warn"></i>Educational simulation</span>
       </div>
@@ -251,7 +251,9 @@
             <div class="viz-overlay"><span class="phase-chip" id="av-phase">Idle — press Scan or Step</span></div>
           </div>
           <div class="legend">
-            <span class="sw"><span class="line grad"></span>trail strength τ (faint → glowing)</span>
+            <span class="sw"><span class="dot" style="background:#fff;box-shadow:0 0 6px var(--gold)"></span>ant</span>
+            <span class="sw"><span class="line grad"></span>pheromone trail (faint → glowing)</span>
+            <span class="sw"><span class="dot rank-dot">#1</span>strongest trail</span>
             <span class="sw"><span class="dot" style="background:var(--pending)"></span>not scanned</span>
             <span class="sw"><span class="dot" style="background:var(--clean)"></span>clean</span>
             <span class="sw"><span class="dot" style="background:var(--suspicious)"></span>suspicious</span>
@@ -262,13 +264,15 @@
         <div class="card side">
           <div class="card-head"><h3 id="av-side-title"><i data-icon="scale"></i>Scan summary</h3><button class="btn sm ghost" id="av-side-back" hidden>Back to summary</button></div>
           <div class="card-body" id="av-summary">
+            <div class="rank-head"><span>Strongest pheromone trails</span><span class="hint">live</span></div>
+            <div class="ranking" id="av-ranking"></div>
+            <p class="hint" style="margin:10px 0 14px">Ants keep returning to risky files, so their trails grow strongest. The detector then confirms those files using the scan evidence.</p>
             <div class="kpis">
               <div class="kpi"><div class="k">Files scanned</div><div class="v" id="av-scanned">0 / 0</div></div>
-              <div class="kpi"><div class="k">Threats confirmed</div><div class="v" id="av-threats">0</div></div>
+              <div class="kpi"><div class="k">Malware detected</div><div class="v" id="av-threats">0</div></div>
               <div class="kpi"><div class="k">Precision</div><div class="v" id="av-prec">—</div></div>
               <div class="kpi"><div class="k">Recall</div><div class="v" id="av-rec">—</div></div>
             </div>
-            <p class="hint" style="margin-top:12px">Measured against the synthetic ground truth. Click any file on the graph to see its evidence and why it was classified that way.</p>
           </div>
           <div class="card-body" id="av-inspector" hidden></div>
         </div>
@@ -551,7 +555,7 @@
           <h3 id="m-data">5. Datasets</h3>
           <ul>
             <li><b>Mumbai roads:</b> OpenStreetMap ways tagged <span class="mono">highway=motorway|trunk|primary|secondary</span> and their <span class="mono">*_link</span> roads in the bounding box 18.89–19.27 °N, 72.77–73.03 °E, downloaded through the Overpass API. <span id="m-data-counts"></span> Ways are split at junctions; one-way rules follow OSM tags; only the largest strongly connected component is kept so every origin can reach every destination. Data © OpenStreetMap contributors, ODbL 1.0. Build script: <span class="mono">tools/build-mumbai-graph.mjs</span>.</li>
-            <li><b>Basemap:</b> CARTO "Dark Matter" raster tiles (© OpenStreetMap contributors, © CARTO), free for non-commercial use with attribution. If tiles fail to load, the road graph still renders from the bundled data.</li>
+            <li><b>Basemap:</b> standard OpenStreetMap raster tiles (© OpenStreetMap contributors), keyless, darkened with a CSS filter. If tiles fail to load, the road graph still renders from the bundled data.</li>
             <li><b>Locality list:</b> approximate locality centres, snapped to the nearest graph junction (snap distance is displayed).</li>
             <li><b>Antivirus files:</b> fully synthetic, generated from a seed; ground truth is known by construction.</li>
           </ul>
@@ -666,7 +670,7 @@
   </aside>
 
   <footer>
-    <div>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL) · basemap © CARTO</div>
+    <div>Map data &amp; tiles © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL)</div>
     <div>Educational simulation · all results computed live in your browser</div>
   </footer>
 </body>

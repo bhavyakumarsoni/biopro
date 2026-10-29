@@ -47,9 +47,10 @@ It is a static site, so there is no build step:
 
 `.vercelignore` keeps tests, tools and the raw OSM export out of the deployment.
 
-**No environment variables, API keys or paid services are needed.** The map basemap is CARTO "Dark Matter"
-(free, keyless, attribution shown). If it fails, the map automatically falls back to standard OpenStreetMap tiles, and if
-there is no internet at all the road graph, ants, pheromone and routing still work from the bundled data.
+**No environment variables, API keys or paid services are needed.** The map basemap is the standard OpenStreetMap
+tile server (keyless, attribution shown, darkened with CSS). CARTO is deliberately not used: it now serves
+"API KEY REQUIRED" watermark tiles on public sites. With no internet at all, the road graph, ants, pheromone and
+routing still work from the bundled data.
 *Optional:* to use MapTiler instead, paste a free, domain-restricted key into `MAP_CONFIG.maptilerKey` in `js/config.js`
 and run `npm run bundle`. The Canva deck needs internet (a PDF backup link is shown offline). Leaflet, Chart.js and
 MathJax are vendored in `vendor/` (pinned versions, see `vendor/README.md`).
@@ -91,7 +92,7 @@ vendor/                    Leaflet 1.9.4, Chart.js 4.4.1, MathJax 3.2.2
 | 3 | **"CPU Overhead Savings: 38%"** was a static number. | Removed. Simulated cost units are computed from the run, plus a head-to-head comparison with a uniform scheduler on the same seed. |
 | 4 | Antivirus detection **read the hidden ground truth** (`node.threat > 0.8`) directly. There was no evidence model, and the pheromone floor was 1.0. | Transparent risk model on noisy evidence, confidence-margin decision rules, MAX–MIN bounded pheromone. Classification never uses pheromone (verified by tests). |
 | 5 | Mumbai edge weights were invented minute values on a 9-node graph (e.g. "Ghodbunder Connectivity" from the Airport to Thane). | 7,657-junction, 10,087-segment graph from OpenStreetMap, with distances from geometry and time from OSM `maxspeed` or documented class defaults. |
-| 6 | The Mumbai page fired **11 requests to the public OSRM demo server** on every load (against its usage policy); the Esri tile attribution was incomplete. | Geometry is bundled; CARTO tiles carry full OSM/CARTO attribution and fail gracefully. |
+| 6 | The Mumbai page fired **11 requests to the public OSRM demo server** on every load (against its usage policy); the Esri tile attribution was incomplete. | Geometry is bundled; keyless OpenStreetMap tiles with attribution, and the map still works without them. |
 | 7 | **Race condition**: Reset then Start within 40 ms (30 ms in antivirus) left two `setTimeout` loops running at double speed. | A single `Runner` per lab with a run token, so starting always cancels the previous loop. |
 | 8 | Resizing the window re-ran `initScienceCanvas`. Node coordinates were raw pixels, so nodes drifted off-canvas; the antivirus graph was **rebuilt (scan state lost) on every tab switch and resize**. | Fixed logical world coordinates, a DPR-aware redraw on `ResizeObserver`, and state that persists across tabs. |
 | 9 | TSP deposit was iteration-best only, although the page described Ant System `Σ Q/L_k`; τ was floored at 0.01 without explanation. | Implemented Ant System as described (all ants deposit), with standard `τ0 = m/C_nn` and log-space probabilities. |
@@ -173,5 +174,5 @@ minimal antivirus layout (settings drawer, inspector panel), the map working fro
 
 ## Credits & licences
 
-Code: MIT (see `LICENSE`). Map data © OpenStreetMap contributors (ODbL). Basemap © CARTO.
+Code: MIT (see `LICENSE`). Map data © OpenStreetMap contributors (ODbL). 
 Leaflet (BSD-2), Chart.js (MIT), MathJax (Apache-2.0).

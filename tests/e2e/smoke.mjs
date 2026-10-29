@@ -69,6 +69,11 @@ check('AV: Step runs one animated iteration', (await txt('#av-it')) === '1');
 await page.click('#av-start');
 await page.waitForFunction(() => window.biopro.av.state.complete === true, null, { timeout: 60000 });
 check('AV: scan reaches completion', (await txt('#av-status')).startsWith('Complete'));
+check('AV: strongest-trail ranking shown, confirmed malware ranked at the top', await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('#av-ranking .rank-row')];
+  const mal = window.biopro.av.engine.files.filter((f) => f.status === 'malicious').length;
+  return rows.length > 0 && rows.slice(0, mal).every((r) => r.classList.contains('st-row-malicious'));
+}));
 const m = await page.evaluate(() => window.biopro.av.engine.metrics());
 const shown = { tp: await txt('#av-tp'), fp: await txt('#av-fp'), fn: await txt('#av-fn'), tn: await txt('#av-tn') };
 check('AV: confusion matrix on screen matches engine', String(m.tp) === shown.tp && String(m.fp) === shown.fp && String(m.fn) === shown.fn && String(m.tn) === shown.tn, JSON.stringify(shown));
@@ -107,6 +112,8 @@ check('MAP: road data loads (or a readable error is shown)', dataOk || await pag
 if (dataOk) {
   await page.waitForFunction(() => window.biopro.map.state.dij, null, { timeout: 20000 });
   check('MAP: Dijkstra reference computed', /\d/.test(await txt('#map-dij')));
+  const tileUrl = await page.evaluate(() => window.biopro.map.state.tiles?._url || '');
+  check('MAP: basemap uses keyless OpenStreetMap tiles (no CARTO "API key required" watermark)', /tile\.openstreetmap\.org/.test(tileUrl) && !/cartocdn/.test(tileUrl), tileUrl);
   await page.click('#map-step');
   check('MAP: Step runs one ACO iteration', (await txt('#map-it')) === '1');
   await page.evaluate(() => window.biopro.map.step(25));

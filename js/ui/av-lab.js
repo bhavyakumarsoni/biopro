@@ -10,13 +10,16 @@ import { $, fmt, bindRange, bindSeg, setPill, fitCanvas, drawSparkline, Runner, 
 const COLORS = { pending: '#6b7280', scanning: '#60a5fa', clean: '#34d399', suspicious: '#f59e0b', malicious: '#f43f5e' };
 const STATUS_LABEL = { pending: 'pending', scanning: 'inconclusive', clean: 'clean', suspicious: 'suspicious', malicious: 'malicious' };
 // Phase durations (ms) at speed 1; divided by the speed factor.
-const PHASE_MS = [0, 1400, 700, 500, 700, 400, 500, 500];
+const PHASE_MS = [0, 1500, 650, 450, 1600, 600, 450, 1100];
 const SPEED_FACTOR = [0, 0.5, 1, 1.8, 3.2, 6];
-const PHASE_NAMES = ['', 'Ants select files', 'Engine evaluates', 'Evidence → risk R̂', 'Evaporate + deposit', 'Priorities update', 'Classify (rules)', 'Highlight threats'];
+const PHASE_NAMES = ['', 'Ants leave the nest', 'Ants inspect files', 'Evidence measured', 'Ants return, laying pheromone', 'Trails evaporate & rank', 'Evidence check', 'Strongest trails → threats'];
 
-/** Trail intensity on a log scale between the MAX–MIN bounds (0 = τmin, 1 = τmax). */
+/**
+ * Displayed trail intensity: (τ / τmax)^0.6 — monotonic in the real pheromone value, with a mild
+ * gamma so faint trails stay visible while the strongest trails clearly stand out.
+ */
 export function trailLevel(tau, p = AV_DEFAULTS) {
-  return Math.max(0, Math.min(1, Math.log(tau / p.tauMin) / Math.log(p.tauMax / p.tauMin)));
+  return Math.max(0, Math.min(1, Math.pow(Math.max(0, tau) / p.tauMax, 0.6)));
 }
 
 export function initAvLab() {
@@ -176,6 +179,11 @@ export function initAvLab() {
     }
     if (p === 7) {
       for (const e of st.commitResult.events) if (e.changed && e.status === STATUS.MALICIOUS) st.newlyMalicious.add(e.file);
+      if (st.newlyMalicious.size) {
+        const rank = trailRanking();
+        const names = [...st.newlyMalicious].map((id) => `${eng.files[id].name} (trail #${rank.findIndex((f) => f.id === id) + 1})`);
+        $('#av-phase').innerHTML = `Iteration ${st.plan.iteration} · <b style="color:#fda4af">Malware detected:</b> ${escapeHtml(names.join(', '))}`;
+      }
     }
     renderPanels();
   }
@@ -199,7 +207,15 @@ export function initAvLab() {
     updateStartButton();
     const m = eng.metrics();
     setPill(statusEl, 'done', m.tp > 0 ? `Complete · ${m.tp} threat(s)` : 'Complete · no confirmed threats');
-    $('#av-phase').textContent = `Scan complete after ${eng.iteration} iterations`;
+    const rank = trailRanking();
+    const mal = eng.files.filter((f) => f.status === STATUS.MALICIOUS);
+    const topIds = new Set(rank.slice(0, mal.length).map((f) => f.id));
+    const matches = mal.length > 0 && mal.every((f) => topIds.has(f.id));
+    $('#av-phase').innerHTML = mal.length === 0
+      ? `Scan complete after ${eng.iteration} iterations · no file confirmed malicious`
+      : matches
+        ? `Scan complete · the <b>${mal.length} strongest trail${mal.length > 1 ? 's' : ''}</b> led to the ${mal.length} confirmed malware file${mal.length > 1 ? 's' : ''}`
+        : `Scan complete · ${mal.length} malware file(s) confirmed (trail ranks ${mal.map((f) => `#${rank.findIndex((g) => g.id === f.id) + 1}`).join(', ')})`;
     log(`SCAN COMPLETE at iteration ${eng.iteration}: every file has a final verdict. TP ${m.tp}, FP ${m.fp}, FN ${m.fn}, flagged for review ${m.flagged}.`, 'info');
     renderAll();
   }
@@ -239,10 +255,10 @@ export function initAvLab() {
   // ------------------------------------------------------------- layout & drawing
   let layout = null;
   function computeLayout(w, h) {
-    const cx = w / 2; const cy = h / 2;
     const compact = w < 560;
+    const cx = w / 2; const cy = h / 2 + (compact ? 8 : 14);
     const rx2 = Math.max(80, w / 2 - (compact ? 22 : 100));
-    const ry2 = Math.max(80, h / 2 - (compact ? 26 : 40));
+    const ry2 = Math.max(80, h / 2 - (compact ? 34 : 56));
     const rx1 = rx2 * 0.42; const ry1 = ry2 * 0.42;
     const files = eng.files;
     const byDir = eng.dirs.map((d) => files.filter((f) => f.dir === d.id));
@@ -265,9 +281,22 @@ export function initAvLab() {
     layout = { cx, cy, filePos, dirPos, compact, w, h };
   }
 
-  function dispTau(f) { return st.snapshot && st.phase > 0 && st.phase < 4 ? st.snapshot.tau[f.id] ?? f.tau : f.tau; }
+  function phaseProgress() {
+    return Math.min(1, (performance.now() - st.phaseStart) / (PHASE_MS[st.phase] / SPEED_FACTOR[st.speed]));
+  }
+  function dispTau(f) {
+    if (!st.snapshot || st.phase === 0) return f.tau;
+    const before = st.snapshot.tau[f.id] ?? f.tau;
+    if (st.phase < 4) return before;
+    if (st.phase === 4) return before + (f.tau - before) * phaseProgress(); // trails visibly grow as ants return
+    return f.tau;
+  }
+  /** Files ranked by (displayed) trail strength — the colony's current priority order. */
+  function trailRanking() {
+    return eng.files.filter((f) => dispN(f) > 0).sort((a, b) => dispTau(b) - dispTau(a));
+  }
   function dispStatus(f) { return st.snapshot && st.phase > 0 && st.phase < 6 ? st.snapshot.status[f.id] ?? f.status : f.status; }
-  function dispN(f) { return st.snapshot && st.phase > 0 && st.phase < 3 ? st.snapshot.n[f.id] ?? f.n : f.n; }
+  function dispN(f) { return st.snapshot && st.phase > 0 && st.phase < 4 ? st.snapshot.n[f.id] ?? f.n : f.n; }
 
   function draw() {
     if (!eng) return;
@@ -325,14 +354,21 @@ export function initAvLab() {
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
       }
     }
-    // labels only where they matter: flagged files, the selected file and the hovered file
-    for (const f of eng.files) {
-      const status = dispStatus(f);
-      const flagged = status === STATUS.MALICIOUS || status === STATUS.SUSPICIOUS;
-      if (flagged || st.selected === f.id || st.hover === f.id) drawLabel(ctx, f, status, w);
+    // rank badges on the three strongest trails
+    const ranking = trailRanking();
+    const rankOf = new Map(ranking.map((f, i) => [f.id, i + 1]));
+    if (eng.iteration > 0 || st.phase >= 4) {
+      ranking.slice(0, 3).forEach((f, i) => {
+        const p = filePos[f.id];
+        const bx = p.x + (p.x >= cx ? -1 : 1) * 0; const by = p.y + 16;
+        ctx.beginPath(); ctx.arc(bx, by, 8, 0, Math.PI * 2);
+        ctx.fillStyle = i === 0 ? '#ffd23f' : 'rgba(255,210,63,0.75)'; ctx.fill();
+        ctx.fillStyle = '#111'; ctx.font = '700 9px Inter, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(`#${i + 1}`, bx, by + 0.5);
+      });
     }
-    // phase-specific overlays
-    if (st.phase === 1 || st.phase === 2) drawAnts(ctx, now);
+    // phase-specific overlays: ants walking out, inspecting, and walking back laying pheromone
+    if (st.phase >= 1 && st.phase <= 4) drawAnts(ctx, now);
     if (st.phase >= 2 && st.phase <= 3 && st.plan) {
       for (const pk of st.plan.picks) {
         const p = filePos[pk.file];
@@ -341,25 +377,56 @@ export function initAvLab() {
         ctx.strokeStyle = `rgba(96,165,250,${1 - k})`; ctx.lineWidth = 2; ctx.stroke();
       }
     }
-    if (st.phase >= 4 && st.phase <= 5 && st.commitResult) {
-      // individual ant deposits (Δτ of each ant) float above the file
-      const t = Math.min(1, (now - st.phaseStart) / (PHASE_MS[st.phase] / SPEED_FACTOR[st.speed]));
-      ctx.textAlign = 'center';
-      ctx.font = '600 10px Fira Code, monospace';
+    if (st.phase === 4 && st.commitResult) {
+      // each ant's own deposit Δτ, shown at the file it investigated
+      const t = phaseProgress();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.font = '700 11px Fira Code, monospace';
       for (const e of st.commitResult.events) {
         const p = filePos[e.file];
-        ctx.fillStyle = `rgba(255,210,63,${1 - t * 0.6})`;
-        ctx.fillText(`+${e.dTau.toFixed(2)}`, p.x, p.y - 14 - 10 * t);
+        ctx.fillStyle = `rgba(255,210,63,${1 - t * 0.5})`;
+        ctx.fillText(`+${e.dTau.toFixed(2)} τ`, p.x, p.y - 16 - 12 * t);
+      }
+    }
+    // labels: flagged files, the strongest trail, the selected file and the hovered file
+    for (const f of eng.files) {
+      const status = dispStatus(f);
+      const flagged = status === STATUS.MALICIOUS || status === STATUS.SUSPICIOUS;
+      if (flagged || rankOf.get(f.id) === 1 || st.selected === f.id || st.hover === f.id) drawLabel(ctx, f, status, w, rankOf.get(f.id));
+    }
+    // detection moment: a file whose strong trail has just been confirmed by the evidence
+    if (st.phase === 7 && st.newlyMalicious.size) {
+      const t = phaseProgress();
+      for (const id of st.newlyMalicious) {
+        const p = filePos[id];
+        for (let k = 0; k < 3; k++) {
+          const q = (t + k / 3) % 1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 10 + 40 * q, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(244,63,94,${0.9 * (1 - q)})`; ctx.lineWidth = 3; ctx.stroke();
+        }
+        drawCallout(ctx, p, `MALWARE DETECTED · strongest trail #${rankOf.get(id) ?? '?'}`, w, h);
       }
     }
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
 
-  function drawLabel(ctx, f, status, w) {
+  function drawCallout(ctx, p, text, w, h) {
+    ctx.font = '800 12px Inter, system-ui';
+    const tw = ctx.measureText(text).width + 20;
+    let x = p.x - tw / 2; let y = p.y < layout.cy ? p.y + 26 : p.y - 50;
+    x = Math.max(6, Math.min(w - tw - 6, x)); y = Math.max(6, Math.min(h - 30, y));
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, tw, 24, 7); else ctx.rect(x, y, tw, 24); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + 10, y + 12.5);
+  }
+
+  function drawLabel(ctx, f, status, w, rank) {
     const p = layout.filePos[f.id];
     const right = p.x >= layout.cx;
     ctx.font = '600 11px Inter, system-ui';
-    const tw = ctx.measureText(f.name).width + 12;
+    const text = status === STATUS.MALICIOUS ? `${f.name} · MALWARE${rank ? ` · trail #${rank}` : ''}` : rank === 1 ? `${f.name} · strongest trail` : f.name;
+    const tw = ctx.measureText(text).width + 12;
     let x = right ? p.x + 14 : p.x - 14 - tw;
     x = Math.max(4, Math.min(w - tw - 4, x));
     const y = p.y - 10;
@@ -371,7 +438,7 @@ export function initAvLab() {
     ctx.fill(); ctx.stroke();
     ctx.fillStyle = status === STATUS.MALICIOUS ? '#fecdd3' : status === STATUS.SUSPICIOUS ? '#fde68a' : '#ededf2';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(f.name, x + 6, y + 10.5);
+    ctx.fillText(text, x + 6, y + 10.5);
   }
 
   function strokeTrail(ctx, x1, y1, x2, y2, lvl, neutral) {
@@ -390,20 +457,54 @@ export function initAvLab() {
   function drawAnts(ctx, now) {
     if (!st.plan) return;
     const { cx, cy, filePos, dirPos } = layout;
-    const dur = PHASE_MS[1] / SPEED_FACTOR[st.speed];
-    const t = st.phase === 1 ? Math.min(1, (now - st.phaseStart) / dur) : 1;
-    ctx.fillStyle = '#ffffff';
-    st.plan.picks.forEach((pk, k) => {
-      const tt = Math.max(0, Math.min(1, t * 1.15 - (k % 5) * 0.03));
+    const t = phaseProgress();
+    const along = (pk, u) => { // u: 0 = nest, 0.5 = folder, 1 = file
       const d = dirPos[pk.dir]; const f = filePos[pk.file];
-      let x; let y;
-      if (tt < 0.5) { const q = tt / 0.5; x = cx + (d.x - cx) * q; y = cy + (d.y - cy) * q; } else { const q = (tt - 0.5) / 0.5; x = d.x + (f.x - d.x) * q; y = d.y + (f.y - d.y) * q; }
-      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+      if (u < 0.5) { const q = u / 0.5; return [cx + (d.x - cx) * q, cy + (d.y - cy) * q]; }
+      const q = (u - 0.5) / 0.5; return [d.x + (f.x - d.x) * q, d.y + (f.y - d.y) * q];
+    };
+    st.plan.picks.forEach((pk, k) => {
+      const lag = (k % 6) * 0.035;
+      let u;
+      if (st.phase === 1) u = Math.max(0, Math.min(1, t * 1.2 - lag)); // outbound
+      else if (st.phase === 4) u = 1 - Math.max(0, Math.min(1, t * 1.2 - lag)); // homeward, laying pheromone
+      else u = 1; // at the file, inspecting
+      if (st.phase === 4) {
+        // pheromone droplets left behind the returning ant
+        for (let j = 1; j <= 6; j++) {
+          const uu = Math.min(1, u + j * 0.035);
+          const [x, y] = along(pk, uu);
+          ctx.beginPath(); ctx.arc(x, y, 2.6 - j * 0.3, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,210,63,${0.8 - j * 0.11})`; ctx.fill();
+        }
+      }
+      const [x, y] = along(pk, u);
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = st.phase === 4 ? '#ffe680' : '#ffffff';
+      ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = st.phase === 4 ? 10 : 4;
+      ctx.fill(); ctx.shadowBlur = 0;
     });
   }
 
   // ------------------------------------------------------------- panels
+  function renderRanking() {
+    const box = $('#av-ranking');
+    if (!box) return;
+    const rank = trailRanking();
+    if (!rank.length) { box.innerHTML = '<p class="hint">No trails yet. Press <b>Scan</b>: ants leave the nest, inspect files and lay pheromone on the way back.</p>'; return; }
+    const top = rank.slice(0, 6);
+    const max = Math.max(...top.map((f) => dispTau(f)), 1e-9);
+    const tag = { malicious: 'MALWARE', suspicious: 'suspicious', clean: 'clean', scanning: 'checking', pending: 'pending' };
+    box.innerHTML = top.map((f, i) => {
+      const status = dispStatus(f);
+      return `<button class="rank-row st-row-${status}" data-id="${f.id}"><span class="rk">#${i + 1}</span><span class="nm">${escapeHtml(f.name)}</span>
+        <span class="tr"><span style="width:${((dispTau(f) / max) * 100).toFixed(0)}%"></span></span><span class="tg st-${status}">${tag[status]}</span></button>`;
+    }).join('');
+    box.querySelectorAll('[data-id]').forEach((b) => b.addEventListener('click', () => { st.selected = Number(b.dataset.id); renderAll(); }));
+  }
+
   function renderStats() {
+    renderRanking();
     const m = eng.metrics();
     $('#av-it').textContent = eng.iteration;
     $('#av-scanned').textContent = `${m.scanned} / ${m.total}`;
