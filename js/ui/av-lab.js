@@ -5,13 +5,14 @@
 
 import { randomSeed } from '../core/rng.js';
 import { generateFileSystem, AntivirusAco, compareSchedulers, STATUS, AV_DEFAULTS, normaliseWeights } from '../core/antivirus.js';
-import { $, $$, fmt, bindRange, bindSeg, setPill, fitCanvas, drawSparkline, Runner, escapeHtml } from './util.js';
+import { $, fmt, bindRange, bindSeg, setPill, fitCanvas, drawSparkline, Runner, escapeHtml } from './util.js';
 
 const COLORS = { pending: '#6b7280', scanning: '#60a5fa', clean: '#34d399', suspicious: '#f59e0b', malicious: '#f43f5e' };
 const STATUS_LABEL = { pending: 'pending', scanning: 'inconclusive', clean: 'clean', suspicious: 'suspicious', malicious: 'malicious' };
 // Phase durations (ms) at speed 1; divided by the speed factor.
 const PHASE_MS = [0, 1400, 700, 500, 700, 400, 500, 500];
 const SPEED_FACTOR = [0, 0.5, 1, 1.8, 3.2, 6];
+const PHASE_NAMES = ['', 'Ants select files', 'Engine evaluates', 'Evidence → risk R̂', 'Evaporate + deposit', 'Priorities update', 'Classify (rules)', 'Highlight threats'];
 
 /** Trail intensity on a log scale between the MAX–MIN bounds (0 = τmin, 1 = τmax). */
 export function trailLevel(tau, p = AV_DEFAULTS) {
@@ -37,6 +38,7 @@ export function initAvLab() {
     running: false,
     complete: false,
     newlyMalicious: new Set(),
+    hover: null,
   };
   const params = { ants: 8, rho: 0.05, alpha: 1, beta: 2, thrSuspicious: 0.35, thrMalicious: 0.6, maxInvestigations: 5 };
   let eng = null;
@@ -71,6 +73,13 @@ export function initAvLab() {
     params.maxInvestigations = v;
     if (eng) { eng.setParams({ maxInvestigations: v }); st.complete = eng.isComplete(); renderAll(); }
   }, String);
+  const settingsBtn = $('#av-settings-btn');
+  settingsBtn.addEventListener('click', () => {
+    const open = $('#av-settings').hidden;
+    $('#av-settings').hidden = !open;
+    settingsBtn.setAttribute('aria-expanded', String(open));
+  });
+  $('#av-side-back').addEventListener('click', () => { st.selected = null; renderAll(); });
   const scenarioSeg = bindSeg($('#av-scenario'), (v) => { st.scenario = v; load(); });
   const seedInput = $('#av-seed');
   seedInput.addEventListener('change', () => {
@@ -121,6 +130,7 @@ export function initAvLab() {
     log(`Loaded "${st.scenario}" scenario, seed ${st.seed}: ${ds.files.length} files in ${ds.dirs.length} folders (ground truth: ${nMal} malicious). Engine idle.`, 'info');
     $('#av-compare-out').textContent = '';
     setPill(statusEl, '', 'Idle');
+    $('#av-phase').textContent = `${ds.files.length} files · press Scan or Step`;
     updateStartButton();
     renderAll();
   }
@@ -158,7 +168,7 @@ export function initAvLab() {
   function setPhase(p) {
     st.phase = p;
     st.phaseStart = performance.now();
-    $$('.phase', $('#av-phases')).forEach((n) => n.classList.toggle('on', Number(n.dataset.phase) === p));
+    $('#av-phase').innerHTML = `Iteration ${st.plan.iteration} · <b>${p}/7</b> ${PHASE_NAMES[p]}`;
     if (p === 3) {
       // the engine evaluates the selected files, computes evidence/risk, deposits, classifies
       st.commitResult = eng.commit(st.plan);
@@ -173,7 +183,7 @@ export function initAvLab() {
   function endIteration() {
     st.phase = 0;
     st.snapshot = null;
-    $$('.phase', $('#av-phases')).forEach((n) => n.classList.remove('on'));
+    $('#av-phase').textContent = `Iteration ${eng.iteration} done`;
     st.complete = eng.isComplete();
     renderAll();
     if (st.complete) { finish(); return; }
@@ -189,6 +199,7 @@ export function initAvLab() {
     updateStartButton();
     const m = eng.metrics();
     setPill(statusEl, 'done', m.tp > 0 ? `Complete · ${m.tp} threat(s)` : 'Complete · no confirmed threats');
+    $('#av-phase').textContent = `Scan complete after ${eng.iteration} iterations`;
     log(`SCAN COMPLETE at iteration ${eng.iteration}: every file has a final verdict. TP ${m.tp}, FP ${m.fp}, FN ${m.fn}, flagged for review ${m.flagged}.`, 'info');
     renderAll();
   }
@@ -230,8 +241,8 @@ export function initAvLab() {
   function computeLayout(w, h) {
     const cx = w / 2; const cy = h / 2;
     const compact = w < 560;
-    const rx2 = Math.max(80, w / 2 - (compact ? 22 : 120));
-    const ry2 = Math.max(80, h / 2 - (compact ? 22 : 92));
+    const rx2 = Math.max(80, w / 2 - (compact ? 22 : 100));
+    const ry2 = Math.max(80, h / 2 - (compact ? 26 : 40));
     const rx1 = rx2 * 0.42; const ry1 = ry2 * 0.42;
     const files = eng.files;
     const byDir = eng.dirs.map((d) => files.filter((f) => f.dir === d.id));
@@ -256,7 +267,6 @@ export function initAvLab() {
 
   function dispTau(f) { return st.snapshot && st.phase > 0 && st.phase < 4 ? st.snapshot.tau[f.id] ?? f.tau : f.tau; }
   function dispStatus(f) { return st.snapshot && st.phase > 0 && st.phase < 6 ? st.snapshot.status[f.id] ?? f.status : f.status; }
-  function dispRisk(f) { return st.snapshot && st.phase > 0 && st.phase < 3 ? st.snapshot.riskHat[f.id] ?? f.riskHat : f.riskHat; }
   function dispN(f) { return st.snapshot && st.phase > 0 && st.phase < 3 ? st.snapshot.n[f.id] ?? f.n : f.n; }
 
   function draw() {
@@ -289,20 +299,20 @@ export function initAvLab() {
       const p = dirPos[di];
       ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
       ctx.fillStyle = '#1e1e26'; ctx.fill(); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.fillStyle = '#b9b9c6'; ctx.font = '600 10.5px Fira Code, monospace';
-      ctx.fillText(d.name.replace('C:/', ''), p.x, p.y + (Math.sin(p.a) >= 0 ? 20 : -18));
+      const label = d.name.replace('C:/', '');
+      ctx.font = '600 10.5px Fira Code, monospace';
+      const lw = ctx.measureText(label).width + 10;
+      const ly = p.y + (Math.sin(p.a) >= 0 ? 20 : -18);
+      ctx.fillStyle = 'rgba(9,9,11,0.85)';
+      ctx.fillRect(p.x - lw / 2, ly - 8, lw, 16);
+      ctx.fillStyle = '#b9b9c6';
+      ctx.fillText(label, p.x, ly + 0.5);
     });
     // files
     for (const f of eng.files) {
       const p = filePos[f.id];
       const status = dispStatus(f);
       const r = layout.compact ? 6 : 8;
-      // risk gauge ring (R̂), drawn from the evidence estimate
-      const risk = dispRisk(f);
-      if (risk != null) {
-        ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * risk);
-        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.stroke();
-      }
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fillStyle = COLORS[status]; ctx.fill();
       if (status === STATUS.MALICIOUS) {
@@ -314,19 +324,12 @@ export function initAvLab() {
         ctx.beginPath(); ctx.arc(p.x, p.y, r + 7, 0, Math.PI * 2);
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
       }
-      if (!layout.compact) {
-        // radial labels (like a radial tree) so neighbouring names never overlap
-        const ang = Math.atan2(p.y - cy, p.x - cx);
-        const flip = Math.cos(ang) < 0;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(flip ? ang + Math.PI : ang);
-        ctx.textAlign = flip ? 'right' : 'left';
-        ctx.fillStyle = status === STATUS.MALICIOUS ? '#fecdd3' : status === STATUS.SUSPICIOUS ? '#fde68a' : '#9a9aab';
-        ctx.font = `${st.selected === f.id ? '600 ' : ''}10.5px Inter, system-ui`;
-        ctx.fillText(f.name, flip ? -15 : 15, 0);
-        ctx.restore();
-      }
+    }
+    // labels only where they matter: flagged files, the selected file and the hovered file
+    for (const f of eng.files) {
+      const status = dispStatus(f);
+      const flagged = status === STATUS.MALICIOUS || status === STATUS.SUSPICIOUS;
+      if (flagged || st.selected === f.id || st.hover === f.id) drawLabel(ctx, f, status, w);
     }
     // phase-specific overlays
     if (st.phase === 1 || st.phase === 2) drawAnts(ctx, now);
@@ -352,10 +355,29 @@ export function initAvLab() {
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
 
+  function drawLabel(ctx, f, status, w) {
+    const p = layout.filePos[f.id];
+    const right = p.x >= layout.cx;
+    ctx.font = '600 11px Inter, system-ui';
+    const tw = ctx.measureText(f.name).width + 12;
+    let x = right ? p.x + 14 : p.x - 14 - tw;
+    x = Math.max(4, Math.min(w - tw - 4, x));
+    const y = p.y - 10;
+    ctx.fillStyle = 'rgba(12,12,16,0.88)';
+    ctx.strokeStyle = status === STATUS.MALICIOUS ? 'rgba(244,63,94,0.7)' : status === STATUS.SUSPICIOUS ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, tw, 20, 6); else ctx.rect(x, y, tw, 20);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = status === STATUS.MALICIOUS ? '#fecdd3' : status === STATUS.SUSPICIOUS ? '#fde68a' : '#ededf2';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(f.name, x + 6, y + 10.5);
+  }
+
   function strokeTrail(ctx, x1, y1, x2, y2, lvl, neutral) {
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
     if (neutral) {
-      ctx.strokeStyle = 'rgba(120,120,135,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(120,120,135,0.16)'; ctx.lineWidth = 1; ctx.stroke();
       return;
     }
     ctx.lineWidth = 0.8 + 6 * lvl;
@@ -386,6 +408,7 @@ export function initAvLab() {
     $('#av-it').textContent = eng.iteration;
     $('#av-scanned').textContent = `${m.scanned} / ${m.total}`;
     $('#av-threats').textContent = m.tp + m.fp;
+    $('#av-threats').classList.toggle('red', m.tp + m.fp > 0);
     $('#av-flagged').textContent = m.flagged;
     $('#av-evals').innerHTML = `${m.evaluations}${m.monitorEvaluations ? ` <small>(${m.monitorEvaluations} monitor)</small>` : ''}`;
     $('#av-cost').textContent = m.costUnits.toFixed(1);
@@ -397,10 +420,12 @@ export function initAvLab() {
 
   function renderInspector() {
     const box = $('#av-inspector');
-    if (st.selected == null || !eng.files[st.selected]) {
-      box.innerHTML = '<p class="inspector-empty">Click a file on the graph to see its evidence, risk estimate, confidence margin, investigation count, pheromone history and the reasons for its classification.</p>';
-      return;
-    }
+    const has = st.selected != null && !!eng.files[st.selected];
+    box.hidden = !has;
+    $('#av-summary').hidden = has;
+    $('#av-side-back').hidden = !has;
+    $('#av-side-title').innerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${has ? '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/>' : '<path d="M12 3v18M5 7h14M5 7l-3 7h6zM19 7l-3 7h6z"/>'}</svg>${has ? 'File inspector' : 'Scan summary'}`;
+    if (!has) return;
     const f = eng.files[st.selected];
     const w = normaliseWeights(eng.params.weights);
     const probs = eng.fileSelectionProbabilities();
@@ -444,6 +469,15 @@ export function initAvLab() {
     st.selected = best;
     renderAll();
   });
+  canvas.addEventListener('mousemove', (ev) => {
+    if (!eng || !layout) return;
+    const r = canvas.getBoundingClientRect();
+    const x = ev.clientX - r.left; const y = ev.clientY - r.top;
+    let best = null; let bd = 14;
+    for (const f of eng.files) { const p = layout.filePos[f.id]; const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = f.id; } }
+    if (best !== st.hover) { st.hover = best; canvas.style.cursor = best == null ? 'default' : 'pointer'; if (!animator.running) draw(); }
+  });
+  canvas.addEventListener('mouseleave', () => { st.hover = null; if (!animator.running) draw(); });
   new ResizeObserver(() => draw()).observe(canvas);
   document.addEventListener('visibilitychange', () => { if (document.hidden && st.running) pause(); });
 

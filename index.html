@@ -23,7 +23,10 @@
     };
   </script>
   <script src="vendor/mathjax/tex-svg.js" defer id="MathJax-script"></script>
-  <script type="module" src="js/ui/app.js"></script>
+  <!-- Plain scripts (not ES modules) so the site also works when opened directly from disk.
+       Source modules live in js/; regenerate with `npm run build`. -->
+  <script src="data/mumbai-roads.js" defer></script>
+  <script src="js/app.bundle.js" defer></script>
 </head>
 <body>
   <a class="sr-only" href="#main">Skip to content</a>
@@ -43,11 +46,10 @@
       <button class="tab" role="tab" id="tab-av" aria-controls="view-av" aria-selected="false" data-view="av"><i data-icon="shield"></i><span>Antivirus Lab</span></button>
       <button class="tab" role="tab" id="tab-map" aria-controls="view-map" aria-selected="false" data-view="map"><i data-icon="map"></i><span>Mumbai Routing Lab</span></button>
       <button class="tab" role="tab" id="tab-method" aria-controls="view-method" aria-selected="false" data-view="method"><i data-icon="book"></i><span>Methodology</span></button>
+      <button class="tab" role="tab" id="tab-deck" aria-controls="view-deck" aria-selected="false" data-view="deck"><i data-icon="slides"></i><span>Deck</span></button>
     </nav>
     <div class="top-actions">
       <button class="btn primary" id="demo-open" title="Guided demonstration for presenting"><i data-icon="presenter"></i><span>Guided demo</span></button>
-      <a class="btn" href="ANT%20COLONY%20OPTIMIZATION.pdf" target="_blank" rel="noopener" title="Open the presentation PDF"><i data-icon="file"></i><span>PPT (PDF)</span></a>
-      <a class="btn" href="https://canva.link/7v0uxofhx3nhwkw" target="_blank" rel="noopener" title="Open the presentation in Canva"><i data-icon="slides"></i><span>Canva</span></a>
     </div>
   </header>
 
@@ -203,148 +205,104 @@
         <div>
           <div class="eyebrow">Lab 2 · ACO-inspired investigation scheduling</div>
           <h2>Antivirus pheromone prioritisation</h2>
-          <p>Ants decide <b>which file to deep-scan next</b>. The scanning engine produces noisy evidence; a transparent risk model scores it; pheromone records where investigation paid off. Classification uses the risk estimate and thresholds only — never pheromone.</p>
+          <p>Ants decide <b>which file to scan next</b>. Evidence decides the verdict; pheromone only sets priority.</p>
         </div>
-        <div class="banner warn" style="max-width:460px"><i data-icon="warn"></i><span><b>Educational simulation.</b> Synthetic files and features — not a production antivirus engine. Real malware does not emit pheromones; pheromone here is a computational priority signal.</span></div>
+        <span class="chip warn" title="Synthetic files and features. Real malware does not emit pheromones; pheromone here is a computational priority signal."><i data-icon="warn"></i>Educational simulation</span>
       </div>
 
-      <div class="lab">
-        <aside class="card card-pad controls" aria-label="Antivirus controls">
-          <div class="group">
-            <div class="group-title">Run</div>
-            <div class="btn-row four">
-              <button class="btn primary" id="av-start"><i data-icon="play"></i><span>Scan</span></button>
-              <button class="btn" id="av-step" title="One full iteration (all 7 phases)"><i data-icon="step"></i><span>Step</span></button>
-              <button class="btn" id="av-reset" title="Reset scan state"><i data-icon="reset"></i><span>Reset</span></button>
-              <button class="btn icon" id="av-dice" title="New random scenario seed"><i data-icon="dice"></i><span class="sr-only">New random seed</span></button>
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-speed">Scan speed</label><output id="av-speed-v"></output></div>
-              <input type="range" id="av-speed" min="1" max="5" step="1" value="3">
-            </div>
-          </div>
-          <div class="group">
-            <div class="group-title">Scenario</div>
-            <div class="seg" id="av-scenario" role="group" aria-label="Scenario">
-              <button data-value="normal" aria-pressed="false">Normal</button>
-              <button data-value="suspicious" aria-pressed="false">Suspicious</button>
-              <button data-value="infected" aria-pressed="true">Infected</button>
-            </div>
-            <div class="field">
-              <label for="av-seed">Scenario seed</label>
-              <input class="input mono" id="av-seed" type="number" min="1" max="999999999" value="42" inputmode="numeric">
-            </div>
-            <button class="btn danger" id="av-inject"><i data-icon="bug"></i><span>Inject simulated malware</span></button>
-          </div>
-          <div class="group">
-            <div class="group-title">Colony</div>
-            <div class="field">
-              <div class="field-top"><label for="av-ants">Ants per iteration</label><output id="av-ants-v"></output></div>
-              <input type="range" id="av-ants" min="1" max="30" step="1" value="8">
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-rho">Evaporation ρ</label><output id="av-rho-v"></output></div>
-              <input type="range" id="av-rho" min="0.01" max="0.5" step="0.01" value="0.05">
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-alpha">Pheromone weight α</label><output id="av-alpha-v"></output></div>
-              <input type="range" id="av-alpha" min="0" max="4" step="0.1" value="1">
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-beta">Triage weight β</label><output id="av-beta-v"></output></div>
-              <input type="range" id="av-beta" min="0" max="4" step="0.1" value="2">
-            </div>
-          </div>
-          <div class="group">
-            <div class="group-title">Detector decision rules</div>
-            <div class="field">
-              <div class="field-top"><label for="av-thr-s">Suspicious threshold θ<sub>s</sub></label><output id="av-thr-s-v"></output></div>
-              <input type="range" id="av-thr-s" min="0.05" max="0.9" step="0.01" value="0.35">
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-thr-m">Malicious threshold θ<sub>m</sub></label><output id="av-thr-m-v"></output></div>
-              <input type="range" id="av-thr-m" min="0.1" max="0.98" step="0.01" value="0.6">
-            </div>
-            <div class="field">
-              <div class="field-top"><label for="av-budget">Evidence budget per file</label><output id="av-budget-v"></output></div>
-              <input type="range" id="av-budget" min="1" max="15" step="1" value="5">
-            </div>
-            <p class="hint">Threshold changes re-classify files immediately using the evidence already gathered.</p>
-          </div>
-        </aside>
+      <div class="card toolbar" aria-label="Antivirus controls">
+        <div class="seg" id="av-scenario" role="group" aria-label="Scenario">
+          <button data-value="normal" aria-pressed="false">Normal</button>
+          <button data-value="suspicious" aria-pressed="false">Suspicious</button>
+          <button data-value="infected" aria-pressed="true">Infected</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn primary" id="av-start"><i data-icon="play"></i><span>Scan</span></button>
+          <button class="btn" id="av-step" title="One full iteration (all 7 phases)"><i data-icon="step"></i><span>Step</span></button>
+          <button class="btn" id="av-reset" title="Reset scan"><i data-icon="reset"></i><span>Reset</span></button>
+        </div>
+        <button class="btn danger" id="av-inject" title="Add a simulated known-signature sample to Downloads"><i data-icon="bug"></i><span>Inject malware</span></button>
+        <div class="toolbar-speed">
+          <label for="av-speed">Speed</label>
+          <input type="range" id="av-speed" min="1" max="5" step="1" value="3"><output id="av-speed-v"></output>
+        </div>
+        <button class="btn ghost" id="av-settings-btn" aria-expanded="false" aria-controls="av-settings"><i data-icon="sliders"></i><span>Settings</span></button>
+        <span class="pill" id="av-status">Idle</span>
+      </div>
 
-        <div class="lab-main">
-          <div class="card">
-            <div class="card-head">
-              <h3><i data-icon="layers"></i>Simulated file system &amp; investigation trails</h3>
-              <span class="pill" id="av-status">Idle</span>
-            </div>
-            <div class="phases" id="av-phases" aria-label="Detection pipeline phases">
-              <div class="phase" data-phase="1"><b>01</b><span>Ants select files</span></div>
-              <div class="phase" data-phase="2"><b>02</b><span>Engine evaluates</span></div>
-              <div class="phase" data-phase="3"><b>03</b><span>Evidence → R̂</span></div>
-              <div class="phase" data-phase="4"><b>04</b><span>Evaporate + deposit</span></div>
-              <div class="phase" data-phase="5"><b>05</b><span>Priorities update</span></div>
-              <div class="phase" data-phase="6"><b>06</b><span>Classify (rules)</span></div>
-              <div class="phase" data-phase="7"><b>07</b><span>Highlight threats</span></div>
-            </div>
-            <div class="viz av"><canvas id="av-canvas" aria-label="File system graph. Click a file to inspect it."></canvas></div>
-            <div class="legend">
-              <span class="sw"><span class="line" style="height:1px;opacity:.3"></span>weak trail</span>
-              <span class="sw"><span class="line" style="height:3px;opacity:.65"></span>medium</span>
-              <span class="sw"><span class="line" style="height:6px;box-shadow:0 0 8px var(--gold)"></span>strong (glow)</span>
-              <span class="sw"><span class="line" style="height:1px;background:#3a3a46;border-top:1px dashed #5a5a66"></span>never investigated (neutral τ₀)</span>
-              <span class="sw"><span class="dot" style="background:var(--pending)"></span>pending</span>
-              <span class="sw"><span class="dot" style="background:var(--scanning)"></span>inconclusive</span>
-              <span class="sw"><span class="dot" style="background:var(--clean)"></span>clean</span>
-              <span class="sw"><span class="dot" style="background:var(--suspicious)"></span>suspicious</span>
-              <span class="sw"><span class="dot" style="background:var(--malicious)"></span>malicious</span>
-            </div>
-            <div class="stats">
-              <div class="stat"><div class="k">Iteration</div><div class="v" id="av-it">0</div></div>
-              <div class="stat"><div class="k">Files scanned</div><div class="v" id="av-scanned">0 / 0</div></div>
-              <div class="stat"><div class="k">Threats confirmed</div><div class="v" id="av-threats" style="color:#fda4af">0</div></div>
-              <div class="stat"><div class="k">Flagged suspicious</div><div class="v" id="av-flagged" style="color:#fcd34d">0</div></div>
-              <div class="stat"><div class="k">Deep-scan evaluations</div><div class="v" id="av-evals">0</div></div>
-              <div class="stat"><div class="k">Simulated cost units</div><div class="v" id="av-cost">0</div></div>
-            </div>
-          </div>
+      <div class="card drawer" id="av-settings" hidden>
+        <div class="drawer-grid">
+          <div class="field"><div class="field-top"><label for="av-ants">Ants / iteration</label><output id="av-ants-v"></output></div><input type="range" id="av-ants" min="1" max="30" step="1" value="8"></div>
+          <div class="field"><div class="field-top"><label for="av-rho">Evaporation ρ</label><output id="av-rho-v"></output></div><input type="range" id="av-rho" min="0.01" max="0.5" step="0.01" value="0.05"></div>
+          <div class="field"><div class="field-top"><label for="av-alpha">Pheromone weight α</label><output id="av-alpha-v"></output></div><input type="range" id="av-alpha" min="0" max="4" step="0.1" value="1"></div>
+          <div class="field"><div class="field-top"><label for="av-beta">Triage weight β</label><output id="av-beta-v"></output></div><input type="range" id="av-beta" min="0" max="4" step="0.1" value="2"></div>
+          <div class="field"><div class="field-top"><label for="av-thr-s">Suspicious threshold θ<sub>s</sub></label><output id="av-thr-s-v"></output></div><input type="range" id="av-thr-s" min="0.05" max="0.9" step="0.01" value="0.35"></div>
+          <div class="field"><div class="field-top"><label for="av-thr-m">Malicious threshold θ<sub>m</sub></label><output id="av-thr-m-v"></output></div><input type="range" id="av-thr-m" min="0.1" max="0.98" step="0.01" value="0.6"></div>
+          <div class="field"><div class="field-top"><label for="av-budget">Evidence budget / file</label><output id="av-budget-v"></output></div><input type="range" id="av-budget" min="1" max="15" step="1" value="5"></div>
+          <div class="field"><label for="av-seed">Scenario seed</label><div class="input-row"><input class="input mono" id="av-seed" type="number" min="1" max="999999999" value="42" inputmode="numeric"><button class="btn icon" id="av-dice" title="New random seed"><i data-icon="dice"></i><span class="sr-only">New random seed</span></button></div></div>
+        </div>
+        <p class="hint">Threshold changes re-classify files immediately from the evidence already gathered.</p>
+      </div>
 
-          <div class="split">
-            <div class="card">
-              <div class="card-head"><h3><i data-icon="file"></i>File inspector</h3><span class="card-sub">click any file node</span></div>
-              <div class="card-body" id="av-inspector"><p class="inspector-empty">Click a file on the graph to see its evidence, risk estimate, confidence margin, investigation count, pheromone history and the reasons for its classification.</p></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3><i data-icon="log"></i>Live scan log</h3><span class="card-sub">by iteration</span></div>
-              <div class="log" id="av-log" role="log" aria-live="polite"></div>
-            </div>
+      <div class="av-layout">
+        <div class="card">
+          <div class="viz av">
+            <canvas id="av-canvas" aria-label="File system graph. Hover to see names, click a file to inspect it."></canvas>
+            <div class="viz-overlay"><span class="phase-chip" id="av-phase">Idle — press Scan or Step</span></div>
           </div>
-
-          <div class="card">
-            <div class="card-head"><h3><i data-icon="scale"></i>Detection quality vs synthetic ground truth</h3><span class="card-sub">positive = classified malicious · recomputed every iteration</span></div>
-            <div class="card-body" style="display:grid;gap:16px">
-              <div class="split even">
-                <div class="confusion" aria-label="Confusion matrix">
-                  <div class="h"></div><div class="h">Truth: malicious</div><div class="h">Truth: benign</div>
-                  <div class="h">Pred: malicious</div><div><div class="n" id="av-tp">0</div><div class="h">TP</div></div><div><div class="n" id="av-fp">0</div><div class="h">FP</div></div>
-                  <div class="h">Pred: not malicious</div><div><div class="n" id="av-fn">0</div><div class="h">FN</div></div><div><div class="n" id="av-tn">0</div><div class="h">TN</div></div>
-                </div>
-                <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-                  <div class="metric"><div class="k">Precision</div><div class="v" id="av-prec">—</div><div class="s">TP / (TP+FP)</div></div>
-                  <div class="metric"><div class="k">Recall</div><div class="v" id="av-rec">—</div><div class="s">TP / (TP+FN)</div></div>
-                  <div class="metric"><div class="k">F1 score</div><div class="v" id="av-f1">—</div><div class="s">harmonic mean</div></div>
-                </div>
-              </div>
-              <div class="banner"><i data-icon="info"></i><div style="display:grid;gap:8px;width:100%">
-                <div><b>Simulated overhead comparison.</b> Re-runs this exact dataset, seed and noise model head-to-head: ACO scheduler vs uniform-random scheduler (α = β = 0). Cost units are a simulation quantity (1 unit + 1 per 50 MB scanned), not measured CPU time.</div>
-                <div><button class="btn sm" id="av-compare"><i data-icon="scale"></i><span>Run comparison on this scenario</span></button></div>
-                <div id="av-compare-out" class="mono" style="font-size:12px"></div>
-              </div></div>
-            </div>
+          <div class="legend">
+            <span class="sw"><span class="line grad"></span>trail strength τ (faint → glowing)</span>
+            <span class="sw"><span class="dot" style="background:var(--pending)"></span>not scanned</span>
+            <span class="sw"><span class="dot" style="background:var(--clean)"></span>clean</span>
+            <span class="sw"><span class="dot" style="background:var(--suspicious)"></span>suspicious</span>
+            <span class="sw"><span class="dot" style="background:var(--malicious)"></span>malicious</span>
           </div>
         </div>
+
+        <div class="card side">
+          <div class="card-head"><h3 id="av-side-title"><i data-icon="scale"></i>Scan summary</h3><button class="btn sm ghost" id="av-side-back" hidden>Back to summary</button></div>
+          <div class="card-body" id="av-summary">
+            <div class="kpis">
+              <div class="kpi"><div class="k">Files scanned</div><div class="v" id="av-scanned">0 / 0</div></div>
+              <div class="kpi"><div class="k">Threats confirmed</div><div class="v" id="av-threats">0</div></div>
+              <div class="kpi"><div class="k">Precision</div><div class="v" id="av-prec">—</div></div>
+              <div class="kpi"><div class="k">Recall</div><div class="v" id="av-rec">—</div></div>
+            </div>
+            <p class="hint" style="margin-top:12px">Measured against the synthetic ground truth. Click any file on the graph to see its evidence and why it was classified that way.</p>
+          </div>
+          <div class="card-body" id="av-inspector" hidden></div>
+        </div>
       </div>
+
+      <details class="card fold">
+        <summary><i data-icon="chart"></i>Evaluation details <span class="card-sub">confusion matrix · F1 · simulated cost · scheduler comparison</span></summary>
+        <div class="card-body" style="display:grid;grid-template-columns:minmax(0,1fr);gap:16px">
+          <div class="split even">
+            <div class="confusion" aria-label="Confusion matrix">
+              <div class="h"></div><div class="h">Truth: malicious</div><div class="h">Truth: benign</div>
+              <div class="h">Pred: malicious</div><div><div class="n" id="av-tp">0</div><div class="h">TP</div></div><div><div class="n" id="av-fp">0</div><div class="h">FP</div></div>
+              <div class="h">Pred: not malicious</div><div><div class="n" id="av-fn">0</div><div class="h">FN</div></div><div><div class="n" id="av-tn">0</div><div class="h">TN</div></div>
+            </div>
+            <dl class="kv">
+              <dt>Iteration</dt><dd id="av-it">0</dd>
+              <dt>F1 score</dt><dd id="av-f1">—</dd>
+              <dt>Flagged for review (suspicious)</dt><dd id="av-flagged">0</dd>
+              <dt>Deep-scan evaluations</dt><dd id="av-evals">0</dd>
+              <dt>Simulated cost units</dt><dd id="av-cost">0</dd>
+            </dl>
+          </div>
+          <div>
+            <button class="btn sm" id="av-compare"><i data-icon="scale"></i><span>Compare with random scheduling</span></button>
+            <p class="hint" style="margin-top:6px">Same dataset, seed and noise. Cost units (1 + 1 per 50 MB scanned) are a simulation quantity, not measured CPU time.</p>
+            <div id="av-compare-out" class="mono" style="font-size:12px;margin-top:6px"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card fold">
+        <summary><i data-icon="log"></i>Scan log <span class="card-sub">per iteration</span></summary>
+        <div class="log" id="av-log" role="log" aria-live="polite"></div>
+      </details>
     </section>
 
     <!-- =============================================================== -->
@@ -629,6 +587,67 @@
         </article>
       </div>
     </section>
+
+    <!-- =============================================================== -->
+    <!-- 5. PRESENTATION DECK                                             -->
+    <!-- =============================================================== -->
+    <section class="view" id="view-deck" role="tabpanel" aria-labelledby="tab-deck">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">Project presentation</div>
+          <h2>Presentation deck</h2>
+          <p>The full Canva deck plays right here — transitions and animations included — followed by an interactive outline that links each topic to its live lab.</p>
+        </div>
+      </div>
+
+      <div class="card deck-card">
+        <div class="card-head">
+          <h3><span class="chip gold">Canva deck</span>Ant Colony Optimization</h3>
+          <div class="deck-actions">
+            <span class="card-sub">by Vidhi, Amrit, Rushi &amp; Naishi</span>
+            <button class="btn sm" id="deck-full"><i data-icon="fullscreen"></i><span>Fullscreen</span></button>
+          </div>
+        </div>
+        <div class="deck-frame-wrap" id="deck-frame-wrap">
+          <iframe id="deck-frame" title="Ant Colony Optimization — Canva presentation" loading="lazy" allow="fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <div class="deck-frame-msg" id="deck-frame-msg">Loading the Canva presentation…</div>
+        </div>
+        <div class="deck-foot hint">Use the arrows inside the deck to move between slides; press the expand button in the deck or <b>Fullscreen</b> above to present. Offline? <a href="ANT%20COLONY%20OPTIMIZATION.pdf" target="_blank" rel="noopener">PDF backup</a>.</div>
+      </div>
+
+      <div class="outline-head">
+        <h3>Interactive slide outline &amp; project summary</h3>
+        <div class="outline-tools">
+          <label class="sr-only" for="outline-index">Slide index</label>
+          <select class="input" id="outline-index"></select>
+          <button class="btn sm" id="outline-full" title="Fullscreen (F)"><i data-icon="fullscreen"></i><span>Fullscreen (F)</span></button>
+        </div>
+      </div>
+      <div class="card outline" id="outline">
+        <div class="outline-body" id="outline-body"></div>
+        <div class="outline-progress"><div id="outline-progress"></div></div>
+        <div class="outline-nav">
+          <div class="btn-row" style="grid-template-columns:auto auto">
+            <button class="btn" id="outline-prev"><i data-icon="prev"></i><span>Previous</span></button>
+            <button class="btn primary" id="outline-next"><span>Next</span><i data-icon="next"></i></button>
+          </div>
+          <span class="mono hint" id="outline-count"></span>
+          <span class="hint keys">Use <kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate · <kbd>F</kbd> for fullscreen</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Credits: shown below every view -->
+    <section class="credits" aria-labelledby="credits-title">
+      <div class="credits-head"><h2 id="credits-title">Credits</h2><span></span></div>
+      <div class="credits-grid">
+        <div class="credit"><span class="roll">C403</span><span class="name">Vidhi Raikundalia</span></div>
+        <div class="credit"><span class="roll">C405</span><span class="name">Amrit Raj</span></div>
+        <div class="credit"><span class="roll">C429</span><span class="name">Rushi Shah</span></div>
+        <div class="credit"><span class="roll">C430</span><span class="name">Naishi Shah</span></div>
+      </div>
+      <p class="credits-sub">BTech Project · Bio-Inspired Intelligent Algorithms — Ant Colony Optimization</p>
+    </section>
   </main>
 
   <aside class="demo" id="demo" hidden aria-live="polite" aria-label="Guided demonstration">
@@ -647,8 +666,8 @@
   </aside>
 
   <footer>
-    <div><b>BTech Project:</b> Bio-Inspired Intelligent Algorithms — Ant Colony Optimization (Vidhi C403, Amrit C405, Rushi C429, Naishi C430)</div>
-    <div>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL) · Educational simulation</div>
+    <div>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL) · basemap © CARTO</div>
+    <div>Educational simulation · all results computed live in your browser</div>
   </footer>
 </body>
 </html>

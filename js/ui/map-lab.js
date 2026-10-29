@@ -6,6 +6,7 @@ import { PathAco } from '../core/path-aco.js';
 import { RoadNetwork, LANDMARKS, OBJECTIVES } from '../core/roadgraph.js';
 import { $, fmt, bindRange, bindSeg, setPill, drawSparkline, Runner, escapeHtml } from './util.js';
 import { lineChart, setSeries } from './charts.js';
+import { tileProviderChain } from '../config.js';
 
 const PERIOD_MS = [0, 1600, 1000, 600, 320, 120];
 const MUMBAI_CENTER = [19.06, 72.875];
@@ -27,10 +28,13 @@ export function initMapLab() {
   let chart = null;
 
   // ------------------------------------------------------------- data loading
-  const dataPromise = fetch('data/mumbai-roads.json')
-    .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} while loading data/mumbai-roads.json`); return r.json(); })
+  // data/mumbai-roads.js (a plain script) sets window.MUMBAI_ROADS so the site also works when
+  // index.html is opened straight from disk; otherwise fall back to fetching the JSON file.
+  const dataPromise = (window.MUMBAI_ROADS
+    ? Promise.resolve(window.MUMBAI_ROADS)
+    : fetch('data/mumbai-roads.json').then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} while loading data/mumbai-roads.json`); return r.json(); }))
     .then((d) => { st.net = new RoadNetwork(d); return st.net; })
-    .catch((err) => { console.warn('[map] road data unavailable:', err.message); showMessage(`<b>Road network could not be loaded.</b><br>${escapeHtml(err.message)}<br><span class="hint">If you opened index.html directly from disk, run a local server instead (see README: <span class="mono">npm run serve</span>).</span>`, true); setPill(statusEl, 'error', 'Data error'); throw err; });
+    .catch((err) => { console.warn('[map] road data unavailable:', err.message); showMessage(`<b>Road network could not be loaded.</b><br>${escapeHtml(err.message)}<br><span class="hint">Check that <span class="mono">data/mumbai-roads.js</span> is deployed next to index.html.</span>`, true); setPill(statusEl, 'error', 'Data error'); throw err; });
   dataPromise.catch(() => {}); // handled above; avoid an unhandled-rejection console error
 
   function showMessage(html, isErr = false) {
@@ -108,24 +112,33 @@ export function initMapLab() {
     const L = window.L;
     const map = L.map('map', { zoomControl: true, zoomAnimation: false, fadeAnimation: true, preferCanvas: true, minZoom: 10, maxZoom: 17 }).setView(MUMBAI_CENTER, 12);
     st.map = map;
-    const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd', maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a> · road graph: OSM (ODbL)',
-    });
-    tiles.on('tileerror', () => {
-      st.tileErrors++;
-      if (st.tileErrors >= 4 && st.tileLoaded === 0) {
-        $('#map-tiles-warn')?.remove();
-        const b = document.createElement('div');
-        b.id = 'map-tiles-warn';
-        b.className = 'banner warn';
-        b.style.cssText = 'position:absolute;right:12px;top:12px;z-index:700;max-width:320px;padding:8px 10px';
-        b.innerHTML = '<span>Basemap tiles could not be loaded (offline or blocked). The road graph and routing still work from bundled OpenStreetMap data.</span>';
-        $('#map').parentElement.append(b);
-      }
-    });
-    tiles.on('tileload', () => { st.tileLoaded++; $('#map-tiles-warn')?.remove(); });
-    tiles.addTo(map);
+    // basemap with automatic fallback: [MapTiler if a key is configured] → CARTO → OpenStreetMap
+    const chain = tileProviderChain();
+    const useProvider = (k) => {
+      if (st.tiles) map.removeLayer(st.tiles);
+      st.providerIdx = k; st.tileErrors = 0; st.tileLoaded = 0;
+      const pv = chain[k];
+      const tiles = L.tileLayer(pv.url, { ...pv.options, attribution: `${pv.options.attribution} · road graph: OSM (ODbL)` });
+      $('#map').classList.toggle('dark-tiles', !!pv.dark);
+      tiles.on('tileerror', () => {
+        st.tileErrors++;
+        if (st.tileErrors >= 6 && st.tileLoaded === 0) {
+          if (st.providerIdx < chain.length - 1) { console.warn(`[map] ${pv.name} tiles unavailable, trying ${chain[st.providerIdx + 1].name}`); useProvider(st.providerIdx + 1); return; }
+          if (!$('#map-tiles-warn')) {
+            const b = document.createElement('div');
+            b.id = 'map-tiles-warn';
+            b.className = 'banner warn';
+            b.style.cssText = 'position:absolute;right:12px;top:12px;z-index:700;max-width:300px;padding:8px 10px';
+            b.innerHTML = '<span>No internet for the background map. Roads, ants and routing still work from the bundled OpenStreetMap data.</span>';
+            $('#map').parentElement.append(b);
+          }
+        }
+      });
+      tiles.on('tileload', () => { st.tileLoaded++; $('#map-tiles-warn')?.remove(); });
+      tiles.addTo(map);
+      st.tiles = tiles;
+    };
+    useProvider(0);
 
     // overlay canvas for roads / pheromone / ants
     const c = document.createElement('canvas');

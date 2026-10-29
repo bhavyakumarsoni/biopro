@@ -16,7 +16,7 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(base, { waitUntil: 'load' });
 await page.waitForFunction(() => window.biopro && window.biopro.aco && window.biopro.av);
-const txt = (sel) => page.locator(sel).innerText();
+const txt = async (sel) => ((await page.locator(sel).textContent()) || '').trim();
 
 // ---------------- ACO lab
 check('ACO: initial iteration is 0', (await txt('#aco-it')) === '0');
@@ -78,6 +78,12 @@ if (malId >= 0) {
   await page.evaluate((id) => window.biopro.av.select(id), malId);
   check('AV: inspector explains classification', (await txt('#av-inspector')).includes('Why this classification'));
 }
+check('AV: inspector replaces summary in the side panel', await page.locator('#av-inspector').isVisible() && !(await page.locator('#av-summary').isVisible()));
+await page.click('#av-side-back');
+check('AV: back button restores the summary', await page.locator('#av-summary').isVisible());
+check('AV: settings drawer hidden by default (minimal layout)', !(await page.locator('#av-settings').isVisible()));
+await page.click('#av-settings-btn');
+check('AV: settings drawer opens', await page.locator('#av-settings').isVisible());
 const before = await page.evaluate(() => window.biopro.av.engine.files.map((f) => f.status).join());
 await page.locator('#av-thr-m').fill('0.3');
 await page.locator('#av-thr-s').fill('0.1');
@@ -86,6 +92,7 @@ const after = await page.evaluate(() => window.biopro.av.engine.files.map((f) =>
 check('AV: threshold change re-classifies', before !== after);
 await page.click('#av-inject');
 check('AV: inject adds a malicious file', await page.evaluate(() => window.biopro.av.engine.files.at(-1).truth === 'malicious'));
+await page.locator('details.fold').first().evaluate((d) => { d.open = true; });
 await page.click('#av-compare');
 await page.waitForFunction(() => document.querySelector('#av-compare-out').textContent.includes('Uniform'), null, { timeout: 20000 });
 check('AV: scheduler comparison runs', true);
@@ -120,6 +127,24 @@ if (dataOk) {
   if (shots) await page.screenshot({ path: `${shots}/map-desktop.png` });
 }
 
+// ---------------- Deck + credits
+await page.click('#tab-deck');
+check('DECK: deck view visible', await page.locator('#view-deck').isVisible());
+const src = await page.locator('#deck-frame').getAttribute('src');
+check('DECK: Canva presentation embedded in-page (view?embed)', /canva\.com\/design\/DAHXWrYVr0Y\/.+\/view\?embed/.test(src || ''), src);
+check('DECK: outline starts at slide 1', (await txt('#outline-count')) === '1/10');
+await page.keyboard.press('ArrowRight');
+await page.keyboard.press('ArrowRight');
+check('DECK: arrow keys navigate slides', (await txt('#outline-count')) === '3/10');
+await page.selectOption('#outline-index', '4');
+check('DECK: slide index jumps to slide 5', (await txt('#outline-count')) === '5/10');
+await page.waitForTimeout(800);
+check('DECK: formula slide renders with MathJax', (await page.locator('#outline-body mjx-container').count()) > 0);
+await page.click('#outline-body [data-lab]');
+check('DECK: "Open in lab" button switches to the lab', await page.locator('#view-aco').isVisible());
+check('CREDITS: shown below views with roll numbers and names', (await txt('.credits')).includes('C403') && (await txt('.credits')).includes('Vidhi Raikundalia') && (await txt('.credits')).includes('C430') && (await txt('.credits')).includes('Naishi Shah'));
+check('HEADER: old PDF/Canva header buttons removed', (await page.locator('header a[href*="canva"], header a[href$=".pdf"]').count()) === 0);
+
 // ---------------- Methodology + demo
 await page.click('#tab-method');
 check('METHOD: methodology visible', await page.locator('#method-body').isVisible());
@@ -136,7 +161,7 @@ await page.click('#demo-close');
 // ---------------- Responsive: no horizontal overflow
 for (const [w, h] of [[1280, 800], [768, 1024], [390, 844]]) {
   await page.setViewportSize({ width: w, height: h });
-  for (const tab of ['aco', 'av', 'map', 'method']) {
+  for (const tab of ['aco', 'av', 'map', 'method', 'deck']) {
     await page.click(`#tab-${tab}`);
     await page.waitForTimeout(250);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -145,8 +170,21 @@ for (const [w, h] of [[1280, 800], [768, 1024], [390, 844]]) {
   }
 }
 
-const relevantErrors = errors.filter((e) => !/fonts\.g|basemaps\.cartocdn|ERR_|net::/i.test(e));
+const relevantErrors = errors.filter((e) => !/fonts\.g|basemaps\.cartocdn|openstreetmap\.org|canva\.com|ERR_|net::/i.test(e));
 check('No console errors (excluding blocked external fonts/tiles)', relevantErrors.length === 0, relevantErrors.slice(0, 3).join(' | '));
+// ---------------- Opened straight from disk (file://)
+const fpage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const ferrors = [];
+fpage.on('pageerror', (e) => ferrors.push(String(e)));
+const { pathToFileURL } = await import('node:url');
+await fpage.goto(pathToFileURL(new URL('../../index.html', import.meta.url).pathname).href);
+await fpage.waitForFunction(() => window.biopro && window.biopro.map, null, { timeout: 15000 }).catch(() => {});
+await fpage.click('#tab-map');
+const fileOk = await fpage.evaluate(() => window.biopro.map.ready.then(() => true, () => false));
+await fpage.waitForFunction(() => window.biopro.map.state.dij, null, { timeout: 20000 }).catch(() => {});
+check('FILE://: map lab works when index.html is opened from disk', fileOk && /\d/.test(await fpage.locator('#map-dij').innerText()));
+check('FILE://: no page errors', ferrors.length === 0, ferrors.slice(0, 2).join(' | '));
+
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

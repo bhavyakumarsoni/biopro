@@ -9,8 +9,10 @@ Interactive, scientifically honest ACO simulator for the BTech *Bio-Inspired Int
 | **2 · Antivirus Lab** | ACO-inspired scheduling of deep scans on a synthetic file system | Synthetic labels known by construction → confusion matrix, precision, recall, F1 |
 | **3 · Mumbai Routing Lab** | Source → destination ACO on a real OpenStreetMap road graph | Dijkstra on the identical graph and identical costs |
 | **4 · Methodology** | Formulas, assumptions, data, metrics, limitations, references | — |
+| **5 · Deck** | The Canva presentation embedded live (animations/transitions play in-page) + an interactive 10-slide outline linked to the labs | — |
 
 A **Guided demo** (top-right) walks a professor through all of it by driving the real engines, with live values.
+Credits (C403 Vidhi Raikundalia · C405 Amrit Raj · C429 Rushi Shah · C430 Naishi Shah) appear at the bottom of every view.
 
 ---
 
@@ -20,16 +22,19 @@ Requires **Node.js 18+** (no dependencies to install).
 
 ```bash
 npm run serve          # → http://localhost:5173
-npm test               # 39 unit tests for the algorithm core (node:test)
+npm test               # bundle freshness check + 39 unit tests (node:test)
+npm run build          # regenerate js/app.bundle.js + data/mumbai-roads.js after editing js/ or data/
 ```
 
-Opening `index.html` directly from disk will not work, because browsers block `fetch()` of the road data from `file://` URLs. Use the server above. If you do open it from disk, the map lab shows a clear error message instead of a broken page.
+You can also simply **double-click `index.html`**: the page loads two plain scripts (`js/app.bundle.js`,
+`data/mumbai-roads.js`) instead of ES modules, so everything — including the Mumbai map — works from `file://`.
+The ES modules in `js/` remain the source code; `npm test` fails if the bundle is out of date.
 
 Optional browser end-to-end test (needs Playwright with Chromium installed):
 
 ```bash
 npm run serve &        # in one terminal
-npm run test:e2e       # 52 checks: every control, metrics vs engine, layouts at 1280/768/390 px
+npm run test:e2e       # 70 checks: every control, metrics vs engine, deck, credits, file:// mode, 1280/768/390 px layouts
 ```
 
 ## Deploy (Vercel, free)
@@ -42,17 +47,21 @@ It is a static site, so there is no build step:
 
 `.vercelignore` keeps tests, tools and the raw OSM export out of the deployment.
 
-**No environment variables, API keys or paid services are needed.** The only runtime network request is
-the CARTO "Dark Matter" basemap tiles (free for non-commercial use with attribution). If tiles fail to load (for example on offline college Wi-Fi),
-the map shows a notice and the road graph, ants, pheromone and routing still work from the bundled data. Leaflet,
-Chart.js and MathJax are vendored in `vendor/` (pinned versions, see `vendor/README.md`).
+**No environment variables, API keys or paid services are needed.** The map basemap is CARTO "Dark Matter"
+(free, keyless, attribution shown). If it fails, the map automatically falls back to standard OpenStreetMap tiles, and if
+there is no internet at all the road graph, ants, pheromone and routing still work from the bundled data.
+*Optional:* to use MapTiler instead, paste a free, domain-restricted key into `MAP_CONFIG.maptilerKey` in `js/config.js`
+and run `npm run build`. The Canva deck needs internet (a PDF backup link is shown offline). Leaflet, Chart.js and
+MathJax are vendored in `vendor/` (pinned versions, see `vendor/README.md`).
 
 ---
 
 ## Project structure
 
 ```
-index.html                 app shell: 4 labs + methodology + guided demo
+index.html                 app shell: 3 labs + methodology + deck + guided demo + credits
+js/app.bundle.js           generated plain-script bundle of js/ (npm run build)
+js/config.js               optional map settings (no key needed)
 css/styles.css             design system (dark, restrained gold)
 js/core/                   PURE algorithm code — no DOM, unit-tested in Node
   rng.js                   seeded PRNG (mulberry32) + roulette-wheel selection
@@ -63,6 +72,7 @@ js/core/                   PURE algorithm code — no DOM, unit-tested in Node
   antivirus.js             synthetic file system, risk model, ACO scheduler, metrics
 js/ui/                     one controller per lab + charts + helpers + app shell
 data/mumbai-roads.json     road graph built from OpenStreetMap (556 KB, 153 KB gzipped)
+data/mumbai-roads.js       same data as a plain script (generated)
 data/raw/                  the raw Overpass export used to build it (gzip)
 tools/build-mumbai-graph.mjs   reproducible OSM → graph builder
 tools/serve.mjs            zero-dependency dev server
@@ -145,10 +155,12 @@ objective-correct routes, congestion affecting time but not distance); the antiv
 neutral τ₀, trail ordering malicious > grey > benign, pheromone never classifying, threshold re-classification,
 confusion matrix and precision/recall/F1 recomputation, and undefined metrics reported as undefined.
 
-`tests/e2e/smoke.mjs` (Playwright, Chromium): **52/52 checks passed**. These cover every Start/Pause/Resume/Step/Reset, sliders reaching
+`tests/e2e/smoke.mjs` (Playwright, Chromium): **70/70 checks passed**. These cover every Start/Pause/Resume/Step/Reset, sliders reaching
 the engine, add-node changing the real graph, antivirus completion, on-screen confusion matrix equal to the engine,
 threshold re-classification, malware injection, scheduler comparison, Mumbai Dijkstra/ACO/congestion/objective switch,
-MathJax rendering, guided demo driving the engine, no horizontal overflow at 1280/768/390 px, and no console errors.
+MathJax rendering, guided demo driving the engine, Canva embed + slide outline keyboard navigation, credits, the
+minimal antivirus layout (settings drawer, inspector panel), the map working from `file://`, no horizontal overflow at
+1280/768/390 px, and no console errors.
 (The CI sandbox had no internet access, so the basemap-unavailable fallback was exercised as well.)
 
 ## Remaining limitations

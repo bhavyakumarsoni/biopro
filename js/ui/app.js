@@ -5,6 +5,7 @@ import { $, $$, hydrateIcons, typeset } from './util.js';
 import { initAcoLab } from './aco-lab.js';
 import { initAvLab } from './av-lab.js';
 import { initMapLab } from './map-lab.js';
+import { initDeck } from './deck.js';
 import { STATUS } from '../core/antivirus.js';
 
 function boot() {
@@ -23,10 +24,11 @@ function boot() {
   safeInit('aco', initAcoLab);
   safeInit('av', initAvLab);
   safeInit('map', initMapLab);
+  safeInit('deck', () => initDeck({ goTo: (v) => show(v) }));
   window.biopro = labs; // handy for console demos and automated tests
 
   // ---------------------------------------------------------------- tabs
-  const views = ['aco', 'av', 'map', 'method'];
+  const views = ['aco', 'av', 'map', 'method', 'deck'];
   let current = null;
   function show(name, push = true) {
     if (!views.includes(name)) name = 'aco';
@@ -34,6 +36,7 @@ function boot() {
     if (current === 'aco') labs.aco?.pause();
     if (current === 'av') labs.av?.pause();
     if (current === 'map') labs.map?.onHide();
+    if (current === 'deck') labs.deck?.onHide();
     current = name;
     for (const v of views) {
       const on = v === name;
@@ -43,13 +46,16 @@ function boot() {
       tab.tabIndex = on ? 0 : -1;
     }
     if (name === 'map') labs.map?.onShow();
+    if (name === 'deck') labs.deck?.onShow();
     if (name === 'method') typeset($('#view-method'));
     if (push && location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+    window.scrollTo({ top: 0 });
     window.dispatchEvent(new Event('resize'));
   }
   $$('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.view)));
   $('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    if (current === 'deck') return; // arrows navigate slides while the deck is open
     const i = views.indexOf(current);
     const next = views[(i + (e.key === 'ArrowRight' ? 1 : views.length - 1)) % views.length];
     show(next);
@@ -111,7 +117,7 @@ function initDemo(labs, show) {
       tab: 'av',
       body: 'Infected scenario, seed 42. Ants choose files with P ∝ τ<sup>α</sup>η<sup>β</sup>, where η is a cheap triage prior (extension + folder). Each deep scan gives noisy evidence → risk R̂ = 0.45·sig + 0.35·beh + 0.20·attr. Deposit Δτ = Q(ε + R̂)·C(n), so risky files attract more ants. Press <b>Animate 1 iteration</b> to watch the 7 phases.',
       action: { label: 'Animate 1 iteration', run() { labs.av.stepAnimated(); } },
-      enter() { labs.av.configure({ scenario: 'infected', seed: 42 }); setLive(''); return '#av-phases'; },
+      enter() { labs.av.configure({ scenario: 'infected', seed: 42 }); setLive(''); return '#av-phase'; },
     },
     {
       title: 'Antivirus: evidence decides, pheromone prioritises',
