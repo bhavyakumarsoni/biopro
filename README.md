@@ -23,7 +23,7 @@ Requires **Node.js 18+** (no dependencies to install).
 ```bash
 npm run serve          # → http://localhost:5173
 npm test               # bundle freshness check + 39 unit tests (node:test)
-npm run build          # regenerate js/app.bundle.js + data/mumbai-roads.js after editing js/ or data/
+npm run bundle          # regenerate js/app.bundle.js + data/mumbai-roads.js after editing js/ or data/
 ```
 
 You can also simply **double-click `index.html`**: the page loads two plain scripts (`js/app.bundle.js`,
@@ -51,7 +51,7 @@ It is a static site, so there is no build step:
 (free, keyless, attribution shown). If it fails, the map automatically falls back to standard OpenStreetMap tiles, and if
 there is no internet at all the road graph, ants, pheromone and routing still work from the bundled data.
 *Optional:* to use MapTiler instead, paste a free, domain-restricted key into `MAP_CONFIG.maptilerKey` in `js/config.js`
-and run `npm run build`. The Canva deck needs internet (a PDF backup link is shown offline). Leaflet, Chart.js and
+and run `npm run bundle`. The Canva deck needs internet (a PDF backup link is shown offline). Leaflet, Chart.js and
 MathJax are vendored in `vendor/` (pinned versions, see `vendor/README.md`).
 
 ---
@@ -60,7 +60,7 @@ MathJax are vendored in `vendor/` (pinned versions, see `vendor/README.md`).
 
 ```
 index.html                 app shell: 3 labs + methodology + deck + guided demo + credits
-js/app.bundle.js           generated plain-script bundle of js/ (npm run build)
+js/app.bundle.js           generated plain-script bundle of js/ (npm run bundle)
 js/config.js               optional map settings (no key needed)
 css/styles.css             design system (dark, restrained gold)
 js/core/                   PURE algorithm code — no DOM, unit-tested in Node
@@ -136,7 +136,7 @@ gap to the Dijkstra optimum on five test routes was 0 / 0 / 0.8 / 19.5 / 0 % (ti
   18.89–19.27 °N, 72.77–73.03 °E, downloaded through the Overpass API (`overpass.openstreetmap.fr`, OSM snapshot
   2026-08-10) as four tiles merged by way id. That gives 8,097 ways, split at junctions. One-way rules come from OSM tags; only the
   largest strongly connected component is kept (7,657 of 8,410 junctions), so every origin can reach every destination.
-  © OpenStreetMap contributors, **ODbL 1.0**. Rebuild with `npm run build:mumbai` (the output is byte-identical apart from the build timestamp).
+  © OpenStreetMap contributors, **ODbL 1.0**. Rebuild with `npm run bundle:mumbai` (the output is byte-identical apart from the build timestamp).
 * **Distance** comes from OSM geometry (haversine). **Estimated time** uses `maxspeed` where tagged (651 segments), otherwise assumed
   free-flow speeds: motorway 60, trunk 50, primary 40, secondary 30 km/h (links lower). This is **not live traffic**.
 * **Congestion** is a **simulated** multiplier on travel time (per road or per OSM-named corridor such as *Rajiv Gandhi Sea Link* or

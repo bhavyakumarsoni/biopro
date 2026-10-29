@@ -4,7 +4,7 @@
 // URLs, so these two plain scripts let index.html work even when opened straight from disk.
 // The ES modules remain the source of truth (they are what the unit tests import).
 //
-//   npm run build        (re-run after editing anything in js/ or data/mumbai-roads.json)
+//   npm run bundle        (re-run after editing anything in js/ or data/mumbai-roads.json)
 //   node tools/bundle.mjs --check   → exits 1 if the committed bundle is out of date
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -54,7 +54,7 @@ export function buildData() {
 const targets = [['js/app.bundle.js', buildBundle()], ['data/mumbai-roads.js', buildData()]];
 if (process.argv.includes('--check')) {
   const stale = targets.filter(([p, c]) => c != null && (!existsSync(join(root, p)) || readFileSync(join(root, p), 'utf8') !== c)).map(([p]) => p);
-  if (stale.length) { console.error(`Out of date: ${stale.join(', ')} — run npm run build`); process.exit(1); }
+  if (stale.length) { console.error(`Out of date: ${stale.join(', ')} — run npm run bundle`); process.exit(1); }
   console.log('Bundle and data script are up to date.');
 } else {
   for (const [p, c] of targets) if (c != null) { writeFileSync(join(root, p), c); console.log(`wrote ${p} (${(c.length / 1024).toFixed(0)} KB)`); }
